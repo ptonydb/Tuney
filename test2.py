@@ -1,4 +1,4 @@
-
+from config.config import*
 import discord
 from discord.ext import commands
 
@@ -11,8 +11,7 @@ async def on_ready():
 
 @bot.command(pass_context = True)
 async def say(ctx, *, mg = None):
-    last_queue_message = await ctx.send("Said: " + mg, mention_author=True)
-    await ctx.send("Deleting...")
-    await last_queue_message .delete()
+    author = ctx.author
+    print(type(author.string))
 
-bot.run("ODk1NTEzMjI5MDIxODM5MzYw.YV5prw.oI2Ds5Cq0cjoGAXZCWIFmyvSlxc")
+bot.run(token)

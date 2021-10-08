@@ -1,7 +1,10 @@
 Delete last embed or user inputs for cleaner message log.
 Forceplay
+combine the multiple deques into a deque of dict
+buttoned controls for reactions
 Clear Queue
 Remove song from queue
+add search
 Remove queue number
 Merge link and query links
 Queue Lists

@@ -13,14 +13,18 @@ from selenium import webdriver
 class music(commands.Cog):
     def __init__(self, client):
         self.client = client
+
         self.playque = deque()
         self.que_title = deque()
         self.que_thumbnail = deque()
         self.que_author = deque()
+
         self.voice_channel = None
         self.text_channel = None
+
         self.last_queue_message = None
         self.last_now_playing = None
+        
         option = webdriver.ChromeOptions()
         #option.add_argument('--no-sandbox')
         #option.add_argument('--disable-dev-shm-usage')
@@ -50,13 +54,15 @@ class music(commands.Cog):
     async def quit(self,ctx):
         if self.voice_channel is not None:
             await self.voice_channel.disconnect()
-            await self.text_channel.send("fUck d@7")
+            await ctx.send("fUck d@7",delete_after=10000)
             self.voice_channel = None
             self.text_channel = None
         if self.last_queue_message is not None:
             await self.last_queue_message.delete()
+            self.last_queue_message = None
         if self.last_now_playing is not None:
             await self.last_now_playing.delete()
+            self.last_now_playing = None
         self.playque.clear()
         self.que_title.clear()
         self.que_thumbnail.clear()
@@ -134,18 +140,21 @@ class music(commands.Cog):
     async def song(self,ctx):
 
         #### Create the initial embed object ####
-        embed=discord.Embed(title=self.que_title[0], url=self.playque[0], color=0xDCDCDC)
-
+        if len(self.playque) != 0:
+            embed=discord.Embed(title=self.que_title[0], url=self.playque[0], color=0xDCDCDC)
+            if len(self.playque) > 1:
+                embed.set_footer(text="Up next: "+self.que_title[1])
+            else:
+                embed.set_footer(text="Up next: empty queue!")
+        else:
+            embed=discord.Embed(title="Nothing is currently playing.", color=0xDCDCDC)
         # Add author, thumbnail, fields, and footer to the embed
         embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
 
         #embed.set_thumbnail(url=self.que_thumbnail[0])
 
         #embed.add_field(name="Up next:", value="Index 0 of title que", inline=False) 
-        if len(self.playque) > 1:
-            embed.set_footer(text="Up next: "+self.que_title[1])
-        else:
-            embed.set_footer(text="Up next: empty queue!")
+        
         #### Useful ctx variables ####
         ## User's display name in the server
         #ctx.author.display_name
@@ -154,7 +163,7 @@ class music(commands.Cog):
         #ctx.author.avatar_url
         if self.last_now_playing is not None:
             await self.last_now_playing.delete()
-        self.last_now_playing = await self.text_channel.send(embed=embed)
+        self.last_now_playing = await ctx.send(embed=embed)
 
 
     def next_song(self,error):
