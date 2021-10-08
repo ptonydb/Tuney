@@ -19,6 +19,8 @@ class music(commands.Cog):
         self.que_author = deque()
         self.voice_channel = None
         self.text_channel = None
+        self.last_queue_message = None
+        self.last_now_playing = None
         option = webdriver.ChromeOptions()
         #option.add_argument('--no-sandbox')
         #option.add_argument('--disable-dev-shm-usage')
@@ -45,13 +47,20 @@ class music(commands.Cog):
             self.text_channel = ctx.message.channel
 
     @commands.command()
-    async def disconnect(self,ctx):
+    async def quit(self,ctx):
         if self.voice_channel is not None:
             await self.voice_channel.disconnect()
             await self.text_channel.send("fUck d@7")
-        self.voice_channel = None
-        self.text_channel = None
+            self.voice_channel = None
+            self.text_channel = None
+        if self.last_queue_message is not None:
+            await self.last_queue_message.delete()
+        if self.last_now_playing is not None:
+            await self.last_now_playing.delete()
         self.playque.clear()
+        self.que_title.clear()
+        self.que_thumbnail.clear()
+        self.que_author.clear()
 
 
     @commands.command()
@@ -59,12 +68,20 @@ class music(commands.Cog):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
 
         # If the track is a video title, get the corresponding video link first
+        link = self.convert_to_youtube_link(track)
         if not ("watch?v=" in track):
-            link = self.convert_to_youtube_link(track)
-            await ctx.send("Queued: " + link)
+            if self.last_queue_message is not None:
+                await self.last_queue_message.delete()
+            self.last_queue_message = await ctx.send("Queued: " + link)
         else:
-            self.driver.get(track)     
-            soup = BeautifulSoup(self.driver.page_source, "html.parser")   
+            if self.last_queue_message is not None:
+                await self.last_queue_message.delete()
+            self.last_queue_message = await ctx.send("Queued: " + self.que_title[-1])
+            #self.driver.get(track)     
+            #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
+            #self.que_title.append(soup.title.string)
+            #self.driver.get("data:,")
+            #link = track
             #response = urllib.request.urlopen(url)
             #html = response.read()
             #soup = BeautifulSoup(html, "html.parser")
@@ -72,9 +89,6 @@ class music(commands.Cog):
             
             #results = soup.findAll("a",{"id":"video-title"})
             #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
-            self.que_title.append(soup.title.string)
-            self.driver.get("data:,")
-            link = track
         
         self.playque.append(link)
         if len(self.playque) == 1:
@@ -92,13 +106,13 @@ class music(commands.Cog):
 
         helpBlock.set_thumbnail(url="https://cdn.discordapp.com/emojis/880523014071009391.gif?v=1")
 
-        helpBlock.add_field(name="!play <keywords/YouTube link>", value="Plays a song if the queue is empty, or queue up a song if something is playing", inline=False) 
+        helpBlock.add_field(name="!play <keywords/YouTube link>", value="Plays a song if the queue is empty, or queues up a song if something is playing.", inline=False) 
         helpBlock.add_field(name="!pause", value="⏸", inline=True)
         helpBlock.add_field(name="!resume", value="⏯", inline=True)
         helpBlock.add_field(name="!skip", value="⏭️", inline=True)
         helpBlock.add_field(name="!h", value="Ayuda plz.", inline=True)
         #helpBlock.add_field(name="!playing", value="Shows now playing.", inline=True)
-        helpBlock.add_field(name="!disconnect", value="Boot le bot.", inline=True)
+        helpBlock.add_field(name="!quit", value="Boot le bot.", inline=True)
         helpBlock.add_field(name="!nodat", value="Bar Dat from the party.", inline=True)
         #helpBlock.set_footer(text="List of available controls for the music bot, complain to Dat about functionality or lack thereof.")
 
@@ -138,7 +152,9 @@ class music(commands.Cog):
 
         ## User's avatar URL
         #ctx.author.avatar_url
-        await self.text_channel.send(embed=embed)
+        if self.last_now_playing is not None:
+            await self.last_now_playing.delete()
+        self.last_now_playing = await self.text_channel.send(embed=embed)
 
 
     def next_song(self,error):
