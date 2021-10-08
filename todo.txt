@@ -1,0 +1,9 @@
+Clear Queue
+Remove song from queue
+Remove queue number
+Merge link and query links
+Queue Lists
+Thumbnails?
+YouTube Playlist?
+Soundcloud
+Age restriction
