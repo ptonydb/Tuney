@@ -2,17 +2,20 @@
 ✓ Combine the multiple deques into their own class
 ✓ Buttoned controls for reactions
 ✓ Clear queue and stop playback
-Forcibly play a song regardless of queue position
+✓ Loop functionality
+✓ Thumbnails(?)
+Retrieve YouTube data via youtube-dl instead of selenium
+Add manual search, present x query results & let users pick
 Display playlist
 Remove specific song from queue
 Remove song by queue number
-✓ Loop functionality
+Forcibly play a song regardless of queue position
 YouTube Playlist(?) - queue all songs in given playlist
-Add manual search, present x numbers of query results and let user pick which to queue
 Volume control
-✓ Thumbnails(?)
 Soundcloud support
 Age restriction - some music are age restricted by YouTube
 
 
 skip quit download
+temp it up ragnarok
+dszsdv

@@ -8,8 +8,8 @@ import urllib.parse
 #import urllib.request
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from songrequest import SongRequest
-from playlist import Playlist
+from utils.songrequest import SongRequest
+from utils.playlist import Playlist
 #import asyncio
 
 class music(commands.Cog):
@@ -48,25 +48,8 @@ class music(commands.Cog):
 
         #print("\n\nBot started, listening for commands...\n\n")
 
-    #Joins the author's channel.
-    @commands.command()
-    async def join(self,ctx):
-        author_voice_channel = ctx.author.voice.channel
-        if author_voice_channel is None:
-            await ctx.send("You need to be in a voice channel!")
-            return False
-        elif self.voice_client is None:
-            self.voice_client = await author_voice_channel.connect()
-            self.voice_channel = author_voice_channel
-            return True
-        #Not in the same channel.
-        elif self.voice_channel != author_voice_channel:
-            await ctx.voice_client.move_to(author_voice_channel)
-            self.voice_channel = author_voice_channel
-            return True
-        #await ctx.send("Hello, same channel.")
-        return True
-
+    
+    #test function
     @commands.command()
     async def pc(self,ctx):
         userVoiceChannel = ctx.author.voice;
@@ -79,6 +62,66 @@ class music(commands.Cog):
         if botVoiceChannel.channel.id != userVoiceChannel.channel.id:
             return await ctx.send("You need to be in the same channel as the bot.")
         await ctx.send("Same channel boys.");
+        return True
+
+    
+    @commands.command()
+    async def h(self,ctx):
+        
+        #### Create the initial embed object ####
+        #helpBlock=discord.Embed(title="Commands", color=0xDCDCDC)
+        helpBlock=discord.Embed(title="", color=0xDCDCDC)
+
+        # Add author, thumbnail, fields, and footer to the embed
+        helpBlock.set_author(name="tonyDeez", icon_url="https://cdn.discordapp.com/avatars/153585708005720065/9728219218ae5a0d0666ed7b52e25190.png")
+
+        helpBlock.set_thumbnail(url="https://cdn.discordapp.com/emojis/880523014071009391.gif?v=1")
+
+        helpBlock.add_field(name="!play <keywords/YouTube link>", value="Plays/queues most relevant video on YouTube.", inline=False) 
+        helpBlock.add_field(name="!search <keywords>", value="Looks up top 10 most relevant videos for playback.", inline=False)
+        helpBlock.add_field(name="!song", value="Shows now playing.", inline=False)
+
+        helpBlock.add_field(name="!pause", value="⏸", inline=True)
+        helpBlock.add_field(name="!resume", value="⏯", inline=True)
+        helpBlock.add_field(name="!skip", value="⏭️", inline=True)
+        helpBlock.add_field(name="!loop", value="🔂", inline=True)
+        helpBlock.add_field(name="!stop", value="🛑", inline=True)
+        helpBlock.add_field(name="!quit", value="❌", inline=True)
+#helpBlock.add_field(name="!playing", value="Shows now playing.", inline=True)
+        helpBlock.add_field(name="!nodat", value="Bar Dat from the party.", inline=True)
+        #helpBlock.set_footer(text="List of available controls for the music bot, complain to Dat about functionality or lack thereof.")
+
+
+
+        #### Useful ctx variables ####
+        ## User's display name in the server
+        #ctx.author.display_name
+
+        ## User's avatar URL
+        #ctx.author.avatar_url
+        await ctx.send(embed=helpBlock)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print("\nBot is online!\n")
+
+    #Joins the author's channel.
+    @commands.command()
+    async def join(self,ctx):
+        author_voice = ctx.author.voice
+        if author_voice is None or author_voice.channel is None:
+            await ctx.send("You need to be in a voice channel!")
+            return False
+        elif self.voice_client is None:
+            self.voice_client = await author_voice.channel.connect()
+            self.voice_channel = author_voice.channel
+            return True
+        #Not in the same channel.
+        elif self.voice_channel != author_voice.channel:
+            await ctx.voice_client.move_to(author_voice.channel)
+            self.voice_channel = author_voice.channel
+            return True
+        #await ctx.send("Hello, same channel.")
         return True
 
     @commands.command()
@@ -103,14 +146,38 @@ class music(commands.Cog):
             print("Looping current song...")
         else:
             print("Not looping current song...")
+        
+    @commands.command()
+    async def pause(self,ctx):
+        self.voice_client.pause()
+        print("Paused...")
+        #await self.text_channel.send("⏸")
+    
+    @commands.command()
+    async def resume(self,ctx):
+        self.voice_client.resume()
+        print("Unpaused...")
+        #await self.text_channel.send("⏯")
+      
+    @commands.command()
+    async def skip(self,ctx):
+        self.loop_song = False
+        self.voice_client.stop()
+        print("Skipped...")
+        #await self.text_channel.send("⏭️")
+    
+    @commands.command()
+    async def stop(self,ctx):
+        self.playque.empty()
+        self.voice_client.stop()
+        print("Stopped and cleared queue...")
 
     @commands.command()
     async def play(self,ctx,*,track):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
-            request = self.convert_to_songrequest(track)
-            request.requester = ctx.author.name
+            request = self.convert_to_songrequest(track,ctx.author.name)
             self.playque.add(request)
             await self.delete_last_queue_message()
             if not ("watch?v=" in track):
@@ -129,48 +196,35 @@ class music(commands.Cog):
                 
                 #results = soup.findAll("a",{"id":"video-title"})
                 #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
-            
 
             if len(self.playque) == 1:
                 await self.play_link(ctx,request.url)
             else:
                 await self.song(ctx)
 
-    @commands.command()
-    async def h(self,ctx):
-        
-        #### Create the initial embed object ####
-        #helpBlock=discord.Embed(title="Commands", color=0xDCDCDC)
-        helpBlock=discord.Embed(title="", color=0xDCDCDC)
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        if user.bot:
+            return
+        elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
+            self.toggle_loop()
+        elif reaction.emoji == "⏭️" and self.last_now_playing==reaction.message:
+            await self.skip(None)
+        elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
+            await self.pause(None)
+        elif reaction.emoji == "🛑" and self.last_now_playing==reaction.message:
+            await self.stop(None)
+        elif reaction.emoji == "❌" and self.last_now_playing==reaction.message:
+            await self.quit(None)
 
-        # Add author, thumbnail, fields, and footer to the embed
-        helpBlock.set_author(name="tonyDeez", icon_url="https://cdn.discordapp.com/avatars/153585708005720065/9728219218ae5a0d0666ed7b52e25190.png")
-
-        helpBlock.set_thumbnail(url="https://cdn.discordapp.com/emojis/880523014071009391.gif?v=1")
-
-        helpBlock.add_field(name="!play <keywords/YouTube link>", value="Plays a song if the queue is empty, or queues up a song if something is playing.", inline=False) 
-        helpBlock.add_field(name="!pause", value="⏸", inline=True)
-        helpBlock.add_field(name="!resume", value="⏯", inline=True)
-        helpBlock.add_field(name="!skip", value="⏭️", inline=True)
-        helpBlock.add_field(name="!h", value="Ayuda plz.", inline=True)
-        #helpBlock.add_field(name="!playing", value="Shows now playing.", inline=True)
-        helpBlock.add_field(name="!quit", value="Boot le bot.", inline=True)
-        helpBlock.add_field(name="!nodat", value="Bar Dat from the party.", inline=True)
-        #helpBlock.set_footer(text="List of available controls for the music bot, complain to Dat about functionality or lack thereof.")
-
-
-
-        #### Useful ctx variables ####
-        ## User's display name in the server
-        #ctx.author.display_name
-
-        ## User's avatar URL
-        #ctx.author.avatar_url
-        await ctx.send(embed=helpBlock)
-        
-    @commands.command()
-    async def nodat(self,ctx):
-        await ctx.send("Dat La is now your Butt Buddy.")
+    @commands.Cog.listener()
+    async def on_reaction_remove(self, reaction, user):
+        if user.bot:
+            return
+        elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
+            self.toggle_loop()
+        elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
+            await self.resume(None)
 
     @commands.command()
     async def song(self,ctx):
@@ -179,7 +233,8 @@ class music(commands.Cog):
         if len(self.playque) != 0:
             embed=discord.Embed(title=self.playque[0].title,
                                 description="Requested by {}, {}".format(self.playque[0].requester,self.playque[0].views), 
-                                url=self.playque[0].url, color=0xDCDCDC)
+                                url=self.playque[0].url, color=0xDCDCDC
+                                )
             embed.set_thumbnail(url=self.playque[0].thumbnail)
             if len(self.playque) > 1:
                 embed.set_footer(text="Up next: "+self.playque[1].title)
@@ -209,35 +264,6 @@ class music(commands.Cog):
         ## User's avatar URL
         #ctx.author.avatar_url
 
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("\nBot is ready!\n")
-        
-    @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        if user.bot:
-            return
-        elif reaction.emoji == "🔂":
-            self.toggle_loop()
-        elif reaction.emoji == "⏭️":
-            await self.skip(None)
-        elif reaction.emoji == "⏯":
-            await self.pause(None)
-        elif reaction.emoji == "🛑":
-            await self.stop(None)
-        elif reaction.emoji == "❌":
-            await self.quit(None)
-
-    @commands.Cog.listener()
-    async def on_reaction_remove(self, reaction, user):
-        if user.bot:
-            return
-        elif reaction.emoji == "🔂":
-            self.toggle_loop()
-        elif reaction.emoji == "⏯":
-            await self.resume(None)
-
     async def delete_last_queue_message(self):
         if self.last_queue_message is not None:
             await self.last_queue_message.delete()
@@ -247,6 +273,13 @@ class music(commands.Cog):
         if self.last_now_playing is not None:
             await self.last_now_playing.delete()
             self.last_now_playing = None
+
+
+
+    @commands.command()
+    async def nodat(self,ctx):
+        await ctx.send("Dat La is now your Butt Buddy.")
+
 
     def next_song(self,ctx,error):
         """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
@@ -292,33 +325,8 @@ class music(commands.Cog):
                 self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
-    
-    @commands.command()
-    async def pause(self,ctx):
-        self.voice_client.pause()
-        print("Paused...")
-        #await self.text_channel.send("⏸")
-    
-    @commands.command()
-    async def resume(self,ctx):
-        self.voice_client.resume()
-        print("Unpaused...")
-        #await self.text_channel.send("⏯")
-      
-    @commands.command()
-    async def skip(self,ctx):
-        self.loop_song = False
-        self.voice_client.stop()
-        print("Skipped...")
-        #await self.text_channel.send("⏭️")
-    
-    @commands.command()
-    async def stop(self,ctx):
-        self.playque.empty()
-        self.voice_client.stop()
-        print("Stopped and cleared queue...")
 
-    def convert_to_songrequest(self, title):
+    def convert_to_songrequest(self, title, user):
         """Searches youtube for the video title and returns the first results video link"""
 
         filter(lambda x: x in set(printable), title)
@@ -344,6 +352,7 @@ class music(commands.Cog):
                 return SongRequest(title=results[checked_videos].h3.a['title'],
                                     url='https://www.youtube.com' + results[checked_videos].h3.a['href'],
                                     thumbnail=results[checked_videos].find("img",{"class":"style-scope yt-img-shadow"})['src'], 
+                                    requester=user,
                                     #duration=results[checked_videos].find("span",{"id":"text"}),
                                     views=results[checked_videos].find("span",{"class":"style-scope ytd-video-meta-block"}).string)
                 #self.que_title.append(results[checked_videos].h3.a['title'])
@@ -353,7 +362,41 @@ class music(commands.Cog):
             checked_videos += 1
         return None
     
+    @commands.command()
+    async def search(self,ctx,*,title):
+        if not title:
+            return
+        filter(lambda x: x in set(printable), title)
+        query = urllib.parse.quote_plus(title)
+        url = "https://www.youtube.com/results?search_query=" + query
+        #print("url:" + url)
+        self.driver.get(url)     
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        results = soup.findAll("ytd-video-renderer",{"class":"style-scope ytd-item-section-renderer"})
 
+        checked_videos = 0
+        video_url_list = []
+        embed=discord.Embed()
+        while checked_videos < 10 and checked_videos < len(results):
+            if "user" not in results[checked_videos].h3.a['href'] and "&list=" not in results[checked_videos].h3.a['href']:
+                video_url_list.append('https://www.youtube.com' + results[checked_videos].h3.a['href'])
+
+                embed.add_field(name="\u200b",
+                                value="{}. {}".format(checked_videos+1,results[checked_videos].h3.a['title']),
+                                inline=False)
+
+            checked_videos += 1
+        
+        embed.set_author(name="Search results for '{}':".format(title), icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+        sent_embed = await ctx.send(embed=embed)
+        import emoji
+        print 
+        for i in range(checked_videos):
+            if i == 9:
+                await sent_embed.add_reaction("🔟")
+            else:
+                await sent_embed.add_reaction("{}\u20e3".format(i+1))
+        return video_url_list
 
 def setup(client):
     client.add_cog(music(client))

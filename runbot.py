@@ -1,7 +1,7 @@
-import discord
 from discord.ext import commands
-import music
 from config.config import *
+import discord
+import music
 
 def main():
     cogs = [music]
