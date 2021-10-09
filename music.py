@@ -78,13 +78,13 @@ class music(commands.Cog):
 
     @commands.command()
     async def quit(self,ctx):
-        self.playque.empty()
         if self.voice_client is not None:
             await self.voice_client.disconnect()
             #await ctx.send("fUck d@7",delete_after=10000)
             self.voice_client = None
             self.voice_channel = None
             #self.text_channel = None
+        self.playque.empty()
         await self.delete_last_queue_message()
         await self.delete_last_now_playing()
         print("Quitting...")
@@ -99,11 +99,12 @@ class music(commands.Cog):
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
             request = self.convert_to_songrequest(track)
+            self.playque.add(request)
             await self.delete_last_queue_message()
             if not ("watch?v=" in track):
-                self.last_queue_message = await ctx.send("Queued: " + request.url)
+                self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
             else:
-                self.last_queue_message = await ctx.send("Queued: " + request.title)
+                self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.title))
                 #self.driver.get(track)     
                 #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
                 #self.que_title.append(soup.title.string)
@@ -117,7 +118,7 @@ class music(commands.Cog):
                 #results = soup.findAll("a",{"id":"video-title"})
                 #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
             
-            self.playque.add(request)
+
             if len(self.playque) == 1:
                 await self.play_link(ctx,request.url)
             else:

@@ -1,7 +1,7 @@
 class SongRequest:
     """A wrapper for information about the songs requested by users."""
 
-    def __init__(self, requester = None, uploader = None, creator = None, title = None, duration = None, like_count = None, dislike_count = None, url = None, thumbnail = None):
+    def __init__(self, url, title, requester = None, uploader = None, creator = None, duration = None, like_count = None, dislike_count = None, thumbnail = None):
         self.uploader = uploader
         self.requester = requester
         self.title = title

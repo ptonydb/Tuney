@@ -1,17 +1,15 @@
-✓ Delete last embed or user inputs for cleaner message log.
-combine the multiple deques into a deque of dict
-buttoned controls for reactions
-Forceplay
-display Queue Lists
-Remove song from queue
-Remove queue number
-loop functionality
-YouTube Playlist?
-add search
-volume
-Clear Queue
-Merge link and query links
-Thumbnails?
-YouTube Playlist?
-Soundcloud
-Age restriction
+✓ Delete last embed and/or user inputs for cleaner message log.
+✓ Combine the multiple deques into their own class
+✓ Buttoned controls for reactions
+✓ Clear queue and stop playback
+Forcibly play a song regardless of queue position
+Display playlist
+Remove specific song from queue
+Remove song by queue number
+Loop functionality
+YouTube Playlist(?) - queue all songs in given playlist
+Add manual search, present x numbers of query results and let user pick which to queue
+Volume control
+Thumbnails(?)
+Soundcloud support
+Age restriction - some music are age restricted by YouTube
