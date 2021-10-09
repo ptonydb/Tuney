@@ -1,4 +1,4 @@
-Delete last embed or user inputs for cleaner message log.
+✓ Delete last embed or user inputs for cleaner message log.
 combine the multiple deques into a deque of dict
 buttoned controls for reactions
 Forceplay

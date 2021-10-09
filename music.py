@@ -76,13 +76,10 @@ class music(commands.Cog):
             await self.voice_client.disconnect()
             await ctx.send("fUck d@7",delete_after=10000)
             self.voice_client = None
+            self.voice_channel = None
             #self.text_channel = None
-        if self.last_queue_message is not None:
-            await self.last_queue_message.delete()
-            self.last_queue_message = None
-        if self.last_now_playing is not None:
-            await self.last_now_playing.delete()
-            self.last_now_playing = None
+        await self.delete_last_queue_message()
+        await self.delete_last_now_playing()
         self.playque.clear()
         self.que_title.clear()
         self.que_thumbnail.clear()
@@ -96,12 +93,10 @@ class music(commands.Cog):
         # If the track is a video title, get the corresponding video link first
             link = self.convert_to_youtube_link(track)
             if not ("watch?v=" in track):
-                if self.last_queue_message is not None:
-                    await self.last_queue_message.delete()
+                await self.delete_last_queue_message()
                 self.last_queue_message = await ctx.send("Queued: " + link)
             else:
-                if self.last_queue_message is not None:
-                    await self.last_queue_message.delete()
+                await self.delete_last_queue_message()
                 self.last_queue_message = await ctx.send("Queued: " + self.que_title[-1])
                 #self.driver.get(track)     
                 #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
@@ -119,6 +114,8 @@ class music(commands.Cog):
             self.playque.append(link)
             if len(self.playque) == 1:
                 await self.play_link(ctx,link)
+            else:
+                await self.song(ctx)
 
     @commands.command()
     async def h(self,ctx):
@@ -181,10 +178,18 @@ class music(commands.Cog):
 
         ## User's avatar URL
         #ctx.author.avatar_url
-        if self.last_now_playing is not None:
-            await self.last_now_playing.delete()
+        await self.delete_last_now_playing()
         self.last_now_playing = await ctx.send(embed=embed)
 
+    async def delete_last_queue_message(self):
+        if self.last_queue_message is not None:
+            await self.last_queue_message.delete()
+            self.last_queue_message = None
+
+    async def delete_last_now_playing(self):
+        if self.last_now_playing is not None:
+            await self.last_now_playing.delete()
+            self.last_now_playing = None
 
     def next_song(self,ctx,error):
         """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
