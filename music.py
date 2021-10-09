@@ -1,23 +1,25 @@
 import discord
 from discord.ext import commands
 import youtube_dl
-from collections import deque
+#from collections import deque
 from string import printable
 import urllib
 import urllib.parse
-import urllib.request
+#import urllib.request
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from songrequest import SongRequest
+from playlist import Playlist
 #import asyncio
 
 class music(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-        self.playque = deque()
-        self.que_title = deque()
-        self.que_thumbnail = deque()
-        self.que_author = deque()
+        self.playque = Playlist()
+        #self.que_title = deque()
+        #self.que_thumbnail = deque()
+        #self.que_author = deque()
 
         self.voice_client = None
         self.voice_channel = None
@@ -25,6 +27,10 @@ class music(commands.Cog):
 
         self.last_queue_message = None
         self.last_now_playing = None
+
+        #intended to stopped users from abusing buttons
+        #self.last_action = None
+        #self.last_user = None
         
         option = webdriver.ChromeOptions()
         option.add_argument('--no-sandbox')
@@ -35,7 +41,7 @@ class music(commands.Cog):
         chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
         self.driver = webdriver.Chrome(chrome_options=option)
 
-        print("\n\nBot started, listening for commands...\n\n")
+        #print("\n\nBot started, listening for commands...\n\n")
 
     #Joins the author's channel.
     @commands.command()
@@ -72,18 +78,19 @@ class music(commands.Cog):
 
     @commands.command()
     async def quit(self,ctx):
+        self.playque.empty()
         if self.voice_client is not None:
             await self.voice_client.disconnect()
-            await ctx.send("fUck d@7",delete_after=10000)
+            #await ctx.send("fUck d@7",delete_after=10000)
             self.voice_client = None
             self.voice_channel = None
             #self.text_channel = None
         await self.delete_last_queue_message()
         await self.delete_last_now_playing()
-        self.playque.clear()
-        self.que_title.clear()
-        self.que_thumbnail.clear()
-        self.que_author.clear()
+        print("Quitting...")
+        #self.que_title.clear()
+        #self.que_thumbnail.clear()
+        #self.que_author.clear()
 
 
     @commands.command()
@@ -91,13 +98,12 @@ class music(commands.Cog):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
-            link = self.convert_to_youtube_link(track)
+            request = self.convert_to_songrequest(track)
+            await self.delete_last_queue_message()
             if not ("watch?v=" in track):
-                await self.delete_last_queue_message()
-                self.last_queue_message = await ctx.send("Queued: " + link)
+                self.last_queue_message = await ctx.send("Queued: " + request.url)
             else:
-                await self.delete_last_queue_message()
-                self.last_queue_message = await ctx.send("Queued: " + self.que_title[-1])
+                self.last_queue_message = await ctx.send("Queued: " + request.title)
                 #self.driver.get(track)     
                 #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
                 #self.que_title.append(soup.title.string)
@@ -111,9 +117,9 @@ class music(commands.Cog):
                 #results = soup.findAll("a",{"id":"video-title"})
                 #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
             
-            self.playque.append(link)
+            self.playque.add(request)
             if len(self.playque) == 1:
-                await self.play_link(ctx,link)
+                await self.play_link(ctx,request.url)
             else:
                 await self.song(ctx)
 
@@ -158,18 +164,25 @@ class music(commands.Cog):
 
         #### Create the initial embed object ####
         if len(self.playque) != 0:
-            embed=discord.Embed(title=self.que_title[0], url=self.playque[0], color=0xDCDCDC)
+            embed=discord.Embed(title=self.playque[0].title, url=self.playque[0].url, color=0xDCDCDC)
             if len(self.playque) > 1:
-                embed.set_footer(text="Up next: "+self.que_title[1])
+                embed.set_footer(text="Up next: "+self.playque[1].title)
             else:
                 embed.set_footer(text="Up next: empty queue!")
+            embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            await self.delete_last_now_playing()
+            self.last_now_playing = await ctx.send(embed=embed)
+            await self.last_now_playing.add_reaction("⏯")
+            await self.last_now_playing.add_reaction("⏭️")
+            await self.last_now_playing.add_reaction("🛑")
         else:
             embed=discord.Embed(title="Nothing is currently playing.", color=0xDCDCDC)
+            embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            await self.delete_last_now_playing()
+            self.last_now_playing = await ctx.send(embed=embed)
+            await self.last_now_playing.add_reaction("❌")
         # Add author, thumbnail, fields, and footer to the embed
-        embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-
         #embed.set_thumbnail(url=self.que_thumbnail[0])
-
         #embed.add_field(name="Up next:", value="Index 0 of title que", inline=False) 
         
         #### Useful ctx variables ####
@@ -178,8 +191,31 @@ class music(commands.Cog):
 
         ## User's avatar URL
         #ctx.author.avatar_url
-        await self.delete_last_now_playing()
-        self.last_now_playing = await ctx.send(embed=embed)
+
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print("\nBot is ready!\n")
+        
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        if user.bot:
+            return
+        elif reaction.emoji == "⏭️":
+            await self.skip(None)
+        elif reaction.emoji == "⏯":
+            await self.pause(None)
+        elif reaction.emoji == "🛑":
+            await self.stop(None)
+        elif reaction.emoji == "❌":
+            await self.quit(None)
+
+    @commands.Cog.listener()
+    async def on_reaction_remove(self, reaction, user):
+        if user.bot:
+            return
+        elif reaction.emoji == "⏯":
+            await self.resume(None)
 
     async def delete_last_queue_message(self):
         if self.last_queue_message is not None:
@@ -196,17 +232,23 @@ class music(commands.Cog):
         next_song = None
         if len(self.playque) > 0:
             self.playque.popleft()
-            self.que_title.popleft()
+            #self.que_title.popleft()
             #self.que_thumbnail.popleft()
             #self.que_author = deque()
             if len(self.playque)>0:
-                next_song = self.playque[0]
+                next_song = self.playque[0].url
 
-        if next_song is not None:
-            coro = self.play_link(ctx,next_song)
-            self.client.loop.create_task(coro)
+        #if next_song is not None:
+        coro = self.play_link(ctx,next_song)
+        self.client.loop.create_task(coro)
+        #else:
+        #    coro = self.song(ctx)
+        #    self.client.loop.create_task(coro)
 
     async def play_link(self,ctx,url:str):
+        await self.song(ctx)
+        if url is None:
+            return
         if (await self.join(ctx)):
             #self.text_channel = ctx.message.channel
 
@@ -222,7 +264,6 @@ class music(commands.Cog):
                 url2 = info['formats'][0]['url']
 
                 #await self.text_channel.send(url)
-                await self.song(ctx)
 
                 source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
                 self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
@@ -232,19 +273,28 @@ class music(commands.Cog):
     @commands.command()
     async def pause(self,ctx):
         self.voice_client.pause()
+        print("Paused...")
         #await self.text_channel.send("⏸")
     
     @commands.command()
     async def resume(self,ctx):
         self.voice_client.resume()
+        print("Unpaused...")
         #await self.text_channel.send("⏯")
       
     @commands.command()
     async def skip(self,ctx):
         self.voice_client.stop()
+        print("Skipped...")
         #await self.text_channel.send("⏭️")
+    
+    @commands.command()
+    async def stop(self,ctx):
+        self.playque.empty()
+        self.voice_client.stop()
+        print("Stopped and cleared queue...")
 
-    def convert_to_youtube_link(self, title):
+    def convert_to_songrequest(self, title):
         """Searches youtube for the video title and returns the first results video link"""
 
         filter(lambda x: x in set(printable), title)
@@ -267,10 +317,11 @@ class music(commands.Cog):
         checked_videos = 0;
         while len(results) > checked_videos:
             if "user" not in results[checked_videos].h3.a['href'] and "&list=" not in results[checked_videos].h3.a['href']:
-                self.que_title.append(results[checked_videos].h3.a['title'])
+                return SongRequest(title=results[checked_videos].h3.a['title'],url='https://www.youtube.com' + results[checked_videos].h3.a['href'])
+                #self.que_title.append(results[checked_videos].h3.a['title'])
                 #self.que_thumbnail.append(results[checked_videos].div.a.img['src'])
                 #self.que_author.append()
-                return 'https://www.youtube.com' + results[checked_videos].h3.a['href']
+                #return 'https://www.youtube.com' + results[checked_videos].h3.a['href']
             checked_videos += 1
         return None
     
