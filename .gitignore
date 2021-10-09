@@ -2,3 +2,6 @@
 config/config.py
 config/__pycache__/config.cpython-38.pyc
 __pycache__/music.cpython-38.pyc
+config/__pycache__/config.cpython-38.pyc
+test.py
+test2.py
