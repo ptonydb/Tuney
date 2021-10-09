@@ -19,44 +19,64 @@ class music(commands.Cog):
         self.que_thumbnail = deque()
         self.que_author = deque()
 
+        self.voice_client = None
         self.voice_channel = None
-        self.text_channel = None
+        #self.text_channel = None
 
         self.last_queue_message = None
         self.last_now_playing = None
         
         option = webdriver.ChromeOptions()
-        #option.add_argument('--no-sandbox')
-        #option.add_argument('--disable-dev-shm-usage')
-        #chrome_prefs = {}
-        #option.experimental_options["prefs"] = chrome_prefs
-        #chrome_prefs["profile.default_content_settings"] = {"images": 2}
-        #chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
+        option.add_argument('--no-sandbox')
+        option.add_argument('--disable-dev-shm-usage')
+        chrome_prefs = {}
+        option.experimental_options["prefs"] = chrome_prefs
+        chrome_prefs["profile.default_content_settings"] = {"images": 2}
+        chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
         self.driver = webdriver.Chrome(chrome_options=option)
 
-        print("Bot started, listening for commands...")
+        print("\n\nBot started, listening for commands...\n\n")
 
-    
+    #Joins the author's channel.
     @commands.command()
     async def join(self,ctx):
-        if ctx.author.voice is None:
-            await ctx.send("You're not in a voice channel!")
-        
-        if self.voice_channel is None:
-            self.voice_channel  = await ctx.author.voice.channel.connect()
-            self.text_channel = ctx.message.channel
-        else:
-            await ctx.voice_client.move_to(ctx.author.voice.channel)
-            self.voice_channel  = await ctx.author.voice.channel.connect()
-            self.text_channel = ctx.message.channel
+        author_voice_channel = ctx.author.voice.channel
+        if author_voice_channel is None:
+            await ctx.send("You need to be in a voice channel!")
+            return False
+        elif self.voice_client is None:
+            self.voice_client = await author_voice_channel.connect()
+            self.voice_channel = author_voice_channel
+            return True
+        #Not in the same channel.
+        elif self.voice_channel != author_voice_channel:
+            await ctx.voice_client.move_to(author_voice_channel)
+            self.voice_channel = author_voice_channel
+            return True
+        #await ctx.send("Hello, same channel.")
+        return True
+
+    @commands.command()
+    async def pc(self,ctx):
+        userVoiceChannel = ctx.author.voice;
+        botVoiceChannel = ctx.guild.me.voice;
+        if botVoiceChannel and botVoiceChannel.channel is None:
+            return await ctx.send("The bot is not in a voice channel.")
+        if userVoiceChannel and userVoiceChannel.channel is None:
+            return await ctx.send("You need to be in a voice channel.")
+        #print(dir(botVoiceChannel))
+        if botVoiceChannel.channel.id != userVoiceChannel.channel.id:
+            return await ctx.send("You need to be in the same channel as the bot.")
+        await ctx.send("Same channel boys.");
+        return True
 
     @commands.command()
     async def quit(self,ctx):
-        if self.voice_channel is not None:
-            await self.voice_channel.disconnect()
+        if self.voice_client is not None:
+            await self.voice_client.disconnect()
             await ctx.send("fUck d@7",delete_after=10000)
-            self.voice_channel = None
-            self.text_channel = None
+            self.voice_client = None
+            #self.text_channel = None
         if self.last_queue_message is not None:
             await self.last_queue_message.delete()
             self.last_queue_message = None
@@ -70,35 +90,35 @@ class music(commands.Cog):
 
 
     @commands.command()
-    async def play(self, ctx,*,track):
+    async def play(self,ctx,*,track):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
-
+        if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
-        link = self.convert_to_youtube_link(track)
-        if not ("watch?v=" in track):
-            if self.last_queue_message is not None:
-                await self.last_queue_message.delete()
-            self.last_queue_message = await ctx.send("Queued: " + link)
-        else:
-            if self.last_queue_message is not None:
-                await self.last_queue_message.delete()
-            self.last_queue_message = await ctx.send("Queued: " + self.que_title[-1])
-            #self.driver.get(track)     
-            #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
-            #self.que_title.append(soup.title.string)
-            #self.driver.get("data:,")
-            #link = track
-            #response = urllib.request.urlopen(url)
-            #html = response.read()
-            #soup = BeautifulSoup(html, "html.parser")
-            #self.driver.close()
+            link = self.convert_to_youtube_link(track)
+            if not ("watch?v=" in track):
+                if self.last_queue_message is not None:
+                    await self.last_queue_message.delete()
+                self.last_queue_message = await ctx.send("Queued: " + link)
+            else:
+                if self.last_queue_message is not None:
+                    await self.last_queue_message.delete()
+                self.last_queue_message = await ctx.send("Queued: " + self.que_title[-1])
+                #self.driver.get(track)     
+                #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
+                #self.que_title.append(soup.title.string)
+                #self.driver.get("data:,")
+                #link = track
+                #response = urllib.request.urlopen(url)
+                #html = response.read()
+                #soup = BeautifulSoup(html, "html.parser")
+                #self.driver.close()
+                
+                #results = soup.findAll("a",{"id":"video-title"})
+                #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
             
-            #results = soup.findAll("a",{"id":"video-title"})
-            #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
-        
-        self.playque.append(link)
-        if len(self.playque) == 1:
-          await self.play_link(ctx,link)
+            self.playque.append(link)
+            if len(self.playque) == 1:
+                await self.play_link(ctx,link)
 
     @commands.command()
     async def h(self,ctx):
@@ -126,7 +146,7 @@ class music(commands.Cog):
 
         #### Useful ctx variables ####
         ## User's display name in the server
-        ctx.author.display_name
+        #ctx.author.display_name
 
         ## User's avatar URL
         #ctx.author.avatar_url
@@ -166,7 +186,7 @@ class music(commands.Cog):
         self.last_now_playing = await ctx.send(embed=embed)
 
 
-    def next_song(self,error):
+    def next_song(self,ctx,error):
         """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
         next_song = None
         if len(self.playque) > 0:
@@ -178,46 +198,45 @@ class music(commands.Cog):
                 next_song = self.playque[0]
 
         if next_song is not None:
-            coro = self.play_link(None,next_song)
+            coro = self.play_link(ctx,next_song)
             self.client.loop.create_task(coro)
 
     async def play_link(self,ctx,url:str):
-        if self.voice_channel is None:
-            self.voice_channel  = await ctx.author.voice.channel.connect()
-            self.text_channel = ctx.message.channel
+        if (await self.join(ctx)):
+            #self.text_channel = ctx.message.channel
 
         #print (url)
         #if not ("watch?v=" in url):
         #    url = self.convert_to_youtube_link(url)
         #print (url)       
-        FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-        YDL_OPTIONS = {'format':"bestaudio"}
-        #self.voice_channel.stop()
-        with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
-            info = ydl.extract_info(url, download=False)
-            url2 = info['formats'][0]['url']
+            FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            YDL_OPTIONS = {'format':"bestaudio"}
+            #self.voice_channel.stop()
+            with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
+                info = ydl.extract_info(url, download=False)
+                url2 = info['formats'][0]['url']
 
-            #await self.text_channel.send(url)
-            await self.song(ctx)
+                #await self.text_channel.send(url)
+                await self.song(ctx)
 
-            source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
-            self.voice_channel.play(source, after=lambda e: self.next_song(e))
+                source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
+                self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
     
     @commands.command()
     async def pause(self,ctx):
-        self.voice_channel.pause()
+        self.voice_client.pause()
         #await self.text_channel.send("⏸")
     
     @commands.command()
     async def resume(self,ctx):
-        self.voice_channel.resume()
+        self.voice_client.resume()
         #await self.text_channel.send("⏯")
       
     @commands.command()
     async def skip(self,ctx):
-        self.voice_channel.stop()
+        self.voice_client.stop()
         #await self.text_channel.send("⏭️")
 
     def convert_to_youtube_link(self, title):

@@ -1,13 +1,16 @@
 Delete last embed or user inputs for cleaner message log.
-Forceplay
 combine the multiple deques into a deque of dict
 buttoned controls for reactions
-Clear Queue
+Forceplay
+display Queue Lists
 Remove song from queue
-add search
 Remove queue number
+loop functionality
+YouTube Playlist?
+add search
+volume
+Clear Queue
 Merge link and query links
-Queue Lists
 Thumbnails?
 YouTube Playlist?
 Soundcloud
