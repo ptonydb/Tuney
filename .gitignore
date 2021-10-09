@@ -7,3 +7,4 @@ test.py
 test2.py
 misc test/scrape test.py
 member test.py
+scrape test.py

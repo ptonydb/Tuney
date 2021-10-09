@@ -28,12 +28,17 @@ class music(commands.Cog):
         self.last_queue_message = None
         self.last_now_playing = None
 
+        self.loop_song = False
+
         #intended to stopped users from abusing buttons
         #self.last_action = None
         #self.last_user = None
         
         option = webdriver.ChromeOptions()
-        option.add_argument('--no-sandbox')
+        option.add_argument('log-level=2')
+        option.add_argument('--headless')
+        #option.add_argument('--disable-gpu')
+        #option.add_argument('--no-sandbox')
         option.add_argument('--disable-dev-shm-usage')
         chrome_prefs = {}
         option.experimental_options["prefs"] = chrome_prefs
@@ -92,6 +97,12 @@ class music(commands.Cog):
         #self.que_thumbnail.clear()
         #self.que_author.clear()
 
+    def toggle_loop(self):
+        self.loop_song = not self.loop_song
+        if self.loop_song:
+            print("Looping current song...")
+        else:
+            print("Not looping current song...")
 
     @commands.command()
     async def play(self,ctx,*,track):
@@ -99,6 +110,7 @@ class music(commands.Cog):
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
             request = self.convert_to_songrequest(track)
+            request.requester = ctx.author.name
             self.playque.add(request)
             await self.delete_last_queue_message()
             if not ("watch?v=" in track):
@@ -165,7 +177,10 @@ class music(commands.Cog):
 
         #### Create the initial embed object ####
         if len(self.playque) != 0:
-            embed=discord.Embed(title=self.playque[0].title, url=self.playque[0].url, color=0xDCDCDC)
+            embed=discord.Embed(title=self.playque[0].title,
+                                description="Requested by {}, {}".format(self.playque[0].requester,self.playque[0].views), 
+                                url=self.playque[0].url, color=0xDCDCDC)
+            embed.set_thumbnail(url=self.playque[0].thumbnail)
             if len(self.playque) > 1:
                 embed.set_footer(text="Up next: "+self.playque[1].title)
             else:
@@ -173,6 +188,7 @@ class music(commands.Cog):
             embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
             await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
+            await self.last_now_playing.add_reaction("🔂")
             await self.last_now_playing.add_reaction("⏯")
             await self.last_now_playing.add_reaction("⏭️")
             await self.last_now_playing.add_reaction("🛑")
@@ -202,6 +218,8 @@ class music(commands.Cog):
     async def on_reaction_add(self, reaction, user):
         if user.bot:
             return
+        elif reaction.emoji == "🔂":
+            self.toggle_loop()
         elif reaction.emoji == "⏭️":
             await self.skip(None)
         elif reaction.emoji == "⏯":
@@ -215,6 +233,8 @@ class music(commands.Cog):
     async def on_reaction_remove(self, reaction, user):
         if user.bot:
             return
+        elif reaction.emoji == "🔂":
+            self.toggle_loop()
         elif reaction.emoji == "⏯":
             await self.resume(None)
 
@@ -232,13 +252,14 @@ class music(commands.Cog):
         """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
         next_song = None
         if len(self.playque) > 0:
-            self.playque.popleft()
-            #self.que_title.popleft()
-            #self.que_thumbnail.popleft()
-            #self.que_author = deque()
+            if not self.loop_song:
+                self.playque.popleft()
+                #self.que_title.popleft()
+                #self.que_thumbnail.popleft()
+                #self.que_author = deque()
             if len(self.playque)>0:
                 next_song = self.playque[0].url
-
+                print("Playing..." + self.playque[0].title)
         #if next_song is not None:
         coro = self.play_link(ctx,next_song)
         self.client.loop.create_task(coro)
@@ -247,7 +268,8 @@ class music(commands.Cog):
         #    self.client.loop.create_task(coro)
 
     async def play_link(self,ctx,url:str):
-        await self.song(ctx)
+        if not self.loop_song:
+            await self.song(ctx)
         if url is None:
             return
         if (await self.join(ctx)):
@@ -285,6 +307,7 @@ class music(commands.Cog):
       
     @commands.command()
     async def skip(self,ctx):
+        self.loop_song = False
         self.voice_client.stop()
         print("Skipped...")
         #await self.text_channel.send("⏭️")
@@ -318,7 +341,11 @@ class music(commands.Cog):
         checked_videos = 0;
         while len(results) > checked_videos:
             if "user" not in results[checked_videos].h3.a['href'] and "&list=" not in results[checked_videos].h3.a['href']:
-                return SongRequest(title=results[checked_videos].h3.a['title'],url='https://www.youtube.com' + results[checked_videos].h3.a['href'])
+                return SongRequest(title=results[checked_videos].h3.a['title'],
+                                    url='https://www.youtube.com' + results[checked_videos].h3.a['href'],
+                                    thumbnail=results[checked_videos].find("img",{"class":"style-scope yt-img-shadow"})['src'], 
+                                    #duration=results[checked_videos].find("span",{"id":"text"}),
+                                    views=results[checked_videos].find("span",{"class":"style-scope ytd-video-meta-block"}).string)
                 #self.que_title.append(results[checked_videos].h3.a['title'])
                 #self.que_thumbnail.append(results[checked_videos].div.a.img['src'])
                 #self.que_author.append()

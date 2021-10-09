@@ -6,10 +6,13 @@ Forcibly play a song regardless of queue position
 Display playlist
 Remove specific song from queue
 Remove song by queue number
-Loop functionality
+✓ Loop functionality
 YouTube Playlist(?) - queue all songs in given playlist
 Add manual search, present x numbers of query results and let user pick which to queue
 Volume control
-Thumbnails(?)
+✓ Thumbnails(?)
 Soundcloud support
 Age restriction - some music are age restricted by YouTube
+
+
+skip quit download
