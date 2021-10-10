@@ -99,7 +99,7 @@ class music(commands.Cog):
             self.voice_client = None
             self.voice_channel = None
             #self.text_channel = None
-        self.playque.empty()
+        self.playque.clear()
         await self.delete_last_queue_message()
         await self.delete_last_now_playing()
         if username is None:
@@ -143,7 +143,7 @@ class music(commands.Cog):
     
     @commands.command()
     async def stop(self,ctx,username=None):
-        self.playque.empty()
+        self.playque.clear()
         self.voice_client.stop()
         if username is None:
             username = ctx.author.name
@@ -152,10 +152,10 @@ class music(commands.Cog):
     @commands.command()
     async def remove(self,ctx,index:int,username=None):
         #print(self.playque)
-        if index > 0 and index <= len(self.playque):
-            if index-1 == 0:
+        if index >= 0 and index < len(self.playque):
+            if index == 0:
                 return await self.skip(ctx,username)
-            removed = self.playque.remove(index-1)
+            removed = self.playque.remove(index)
             if username is None:
                 username = ctx.author.name
             print("[{}] {} removed '{}' from the playlist...".format(self.get_time_string(),username,removed.title))
@@ -196,7 +196,7 @@ class music(commands.Cog):
             #if not ("watch?v=" in track):
             #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
             #else:
-                self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.title))
+                self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
                 await self.last_queue_message.add_reaction("🗑")
             #else:
             #    await self.song(ctx)
@@ -245,13 +245,13 @@ class music(commands.Cog):
     def next_song(self,ctx,error):
         """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
         next_song = None
-        if len(self.playque) > 0:
+        if not self.playque.empty():
             if not self.loop_song:
                 self.playque.popleft()
                 #self.que_title.popleft()
                 #self.que_thumbnail.popleft()
                 #self.que_author = deque()
-            if len(self.playque)>0:
+            if not self.playque.empty():
                 next_song = self.playque[0].url
                 
         #if next_song is not None:
@@ -325,16 +325,16 @@ class music(commands.Cog):
     @commands.command()
     async def song(self,ctx):
         #### Create the initial embed object ####
-        if len(self.playque) != 0:
+        if not self.playque.empty():
             embed=discord.Embed(title=self.playque[0].title,
                                 description="{} | Requested by {}".format(self.playque[0].duration,self.playque[0].requester), 
                                 url=self.playque[0].url, color=0xDCDCDC
                                 )
             embed.set_thumbnail(url=self.playque[0].thumbnail)
-            if len(self.playque) > 1:
+            if self.playque.has_queue():
                 upnext = ""
                 for i in range(1,len(self.playque)):
-                    upnext += ("\n{}. {}".format(i+1,self.playque[i].title))
+                    upnext += ("\n{}. {}".format(i,self.playque[i].title))
                 embed.set_footer(text="Up next: "+upnext)
                 #embed.set_footer(text="Up next: \n"+self.playque[1].title)
             else:

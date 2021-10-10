@@ -17,7 +17,7 @@ class Playlist:
     def add(self, songrequest):
         self.playque.append(songrequest)
 
-    def empty(self):
+    def clear(self):
         self.playque.clear()
 
     def popleft(self):
@@ -33,6 +33,29 @@ class Playlist:
             del self.playque[index]
         return removedSong
 
+    def empty(self):
+        if len(self.playque) == 0:
+            return True
+        else:
+            return False
+    
+    def has_queue(self):
+        if len(self.playque) > 1:
+            return True
+        else:
+            return False
+
+    def current(self):
+        if not self.empty():
+            return self.playque[0]
+        else:
+            return None
+
+    def next(self):
+        if self.has_queued():
+            return self.playque[1]
+        else:
+            return None
     #def remove(self,title:str):
     #    for i in range(len(self.playque)):
     #        if self.playque[i].title == title:
@@ -41,7 +64,7 @@ class Playlist:
         embed=discord.Embed()
         for i in range(len(self.playque)):
             embed.add_field(name="\u200b",
-                            value="{}{}. {}".format("" if i != 0 else "▷  ",i+1,self.playque[i].title),
+                            value="{}{} {}".format(i if i != 0 else "▷  ", "." if i != 0 else "",self.playque[i].title),
                             inline=False)     
         embed.set_author(name="Playlist: ", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
         sent_embed = await ctx.send(embed=embed)
