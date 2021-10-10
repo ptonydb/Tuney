@@ -160,7 +160,7 @@ class music(commands.Cog):
                 username = ctx.author.name
             print("[{}] {} removed '{}' from the playlist...".format(self.get_time_string(),username,removed.title))
             #print(self.playque)
-        else:
+        elif ctx is not None:
             await self.list(ctx)
 
     @commands.command()
@@ -175,12 +175,7 @@ class music(commands.Cog):
         # If the track is a video title, get the corresponding video link first
             request = self.convert_to_songrequest(track,ctx.author.name)
             self.playque.add(request)
-            await self.delete_last_queue_message()
-            #if not ("watch?v=" in track):
-            #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
-            #else:
-            self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.title))
-            await self.last_queue_message.add_reaction("🗑")
+            
                 #self.driver.get(track)     
                 #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
                 #self.que_title.append(soup.title.string)
@@ -196,6 +191,13 @@ class music(commands.Cog):
 
             if len(self.playque) == 1:
                 await self.play_link(ctx,request.url)
+            else:
+                await self.delete_last_queue_message()
+            #if not ("watch?v=" in track):
+            #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
+            #else:
+                self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.title))
+                await self.last_queue_message.add_reaction("🗑")
             #else:
             #    await self.song(ctx)
     
@@ -233,9 +235,9 @@ class music(commands.Cog):
         minutes = (seconds % 3600) // 60
         seconds = (seconds % 60)
         return ("{}{}{}{}{}{}".format(hours if hours != 0 else "",
-                                     "" if hours == 0 else " hour, " if hours == 1 else " hours, ",
+                                     "" if hours == 0 else " hour " if hours == 1 else " hours ",
                                      minutes if minutes != 0 else "",
-                                     "" if minutes == 0 else " second, " if minutes == 1 else " minutes, ",
+                                     "" if minutes == 0 else " second " if minutes == 1 else " minutes ",
                                      seconds if seconds != 0 else "",
                                      "" if seconds == 0 else " second" if seconds == 1 else " seconds",
                                      ))
@@ -325,7 +327,7 @@ class music(commands.Cog):
         #### Create the initial embed object ####
         if len(self.playque) != 0:
             embed=discord.Embed(title=self.playque[0].title,
-                                description=self.playque[0].duration, 
+                                description="{} | Requested by {}".format(self.playque[0].duration,self.playque[0].requester), 
                                 url=self.playque[0].url, color=0xDCDCDC
                                 )
             embed.set_thumbnail(url=self.playque[0].thumbnail)
@@ -390,17 +392,17 @@ class music(commands.Cog):
         checked_videos = 0
         video_url_list = []
         embed=discord.Embed()
-        search_results = ""
+        #search_results = ""
         while checked_videos < 10 and checked_videos < len(results):
             if "user" not in results[checked_videos].h3.a['href'] and "&list=" not in results[checked_videos].h3.a['href']:
                 video_url_list.append('https://www.youtube.com' + results[checked_videos].h3.a['href'])
 
-                #embed.add_field(name="\u200b",
-                #                value="{}. {}".format(checked_videos+1,results[checked_videos].h3.a['title']),
-                #                inline=False)
-                search_results += "{}. {}\n".format(checked_videos+1,results[checked_videos].h3.a['title'])
+                embed.add_field(name="\u200b",
+                                value="{}. {}".format(checked_videos+1,results[checked_videos].h3.a['title']),
+                                inline=False)
+                #search_results += "{}. {}\n".format(checked_videos+1,results[checked_videos].h3.a['title'])
             checked_videos += 1
-        embed.set_footer(text=search_results)
+        #embed.set_footer(text=search_results)
         embed.set_author(name="Search results for '{}':".format(title), icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
         sent_embed = await ctx.send(embed=embed)
 
