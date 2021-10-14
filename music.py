@@ -77,7 +77,7 @@ class music(commands.Cog):
     async def join(self,ctx):
         author_voice = ctx.author.voice
         if author_voice is None or author_voice.channel is None:
-            await ctx.send("You need to be in a voice channel!")
+            await ctx.send("You need to be in a voice channel!", delete_after=10.0)
             return False
         elif self.voice_client is None:
             self.voice_client = await author_voice.channel.connect()
@@ -153,16 +153,17 @@ class music(commands.Cog):
     @commands.command()
     async def remove(self,ctx,index:int,username=None):
         #print(self.playque)
-        if index >= 0 and index < len(self.playque):
-            if index == 0:
-                return await self.skip(ctx,username)
+        if index > 0 and index < len(self.playque):
+            #if index == 0:
+            #    return await self.skip(ctx,username)
             removed = self.playque.remove(index)
             if username is None:
                 username = ctx.author.name
-            print("[{}] {} removed '{}' from the playlist...".format(self.get_time_string(),username,removed.title))
-            #print(self.playque)
-        elif ctx is not None:
-            await self.list(ctx)
+            print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
+            await ctx.channel.send("Removed from the playlist: ```{}```".format(removed.title), delete_after=5.0)
+        #if self.last_now_playing is not None:
+            #await self.list(ctx)
+            #await self.song(self.last_now_playing.channel)
 
     @commands.command()
     async def list(self,ctx):
@@ -176,10 +177,11 @@ class music(commands.Cog):
         # If the track is a video title, get the corresponding video link first
             request = self.convert_to_songrequest(track,ctx.author.name)
             if request is None:
-                await self.voice_channel.send("No results, try another keyword/link!")
+                await ctx.send("```No results, try another keyword/link!```",delete_after=10.0)
             else:
                 self.playque.add(request)
-                
+                print("[{}] {} added '{}'...".format(self.get_time_string(),ctx.author.name,request.title))
+            
                     #self.driver.get(track)     
                     #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
                     #self.que_title.append(soup.title.string)
@@ -195,15 +197,18 @@ class music(commands.Cog):
 
                 if len(self.playque) == 1:
                     await self.play_link(ctx,request.url)
+                    #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
                 else:
                     await self.delete_last_queue_message()
+                    #print("[{}] {} added '{}' to the playlist...".format(self.get_time_string(),ctx.author.name,request.title))
+            
                 #if not ("watch?v=" in track):
                 #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
                 #else:
                     self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
                     await self.last_queue_message.add_reaction("🗑")
-            #else:
-            #    await self.song(ctx)
+                    #await self.song(ctx)
+
     
     async def play_link(self,ctx,url:str):
         if url is None:
@@ -256,6 +261,8 @@ class music(commands.Cog):
                 #self.que_author = deque()
             if not self.playque.empty():
                 next_song = self.playque[0].url
+                #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
+               
                 
         #if next_song is not None:
         coro = self.play_link(ctx,next_song)
@@ -308,16 +315,16 @@ class music(commands.Cog):
         elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
             self.toggle_loop(user.name)
         elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
-            await self.pause(None,username=user.name)
+            await self.pause(reaction.message,username=user.name)
         elif reaction.emoji == "⏭️" and self.last_now_playing==reaction.message:
-            await self.skip(None,username=user.name)
+            await self.skip(reaction.message,username=user.name)
         elif reaction.emoji == "🛑" and self.last_now_playing==reaction.message:
-            await self.stop(None,username=user.name)
+            await self.stop(reaction.message,username=user.name)
         elif reaction.emoji == "❌" and self.last_now_playing==reaction.message:
-            await self.quit(None,username=user.name)
+            await self.quit(reaction.message,username=user.name)
         
         elif reaction.emoji == "🗑" and self.last_queue_message==reaction.message:
-            await self.remove(None,len(self.playque)-1,username=user.name)
+            await self.remove(reaction.message,len(self.playque)-1,username=user.name)
             await self.delete_last_queue_message()
 
     @commands.Cog.listener()
