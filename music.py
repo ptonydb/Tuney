@@ -145,6 +145,7 @@ class music(commands.Cog):
     async def stop(self,ctx,username=None):
         self.playque.clear()
         self.voice_client.stop()
+        self.loop_song = False
         if username is None:
             username = ctx.author.name
         print("[{}] {} stopped playback...".format(self.get_time_string(),username))
@@ -174,30 +175,33 @@ class music(commands.Cog):
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
             request = self.convert_to_songrequest(track,ctx.author.name)
-            self.playque.add(request)
-            
-                #self.driver.get(track)     
-                #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
-                #self.que_title.append(soup.title.string)
-                #self.driver.get("data:,")
-                #link = track
-                #response = urllib.request.urlopen(url)
-                #html = response.read()
-                #soup = BeautifulSoup(html, "html.parser")
-                #self.driver.close()
-                
-                #results = soup.findAll("a",{"id":"video-title"})
-                #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
-
-            if len(self.playque) == 1:
-                await self.play_link(ctx,request.url)
+            if request is None:
+                await self.voice_channel.send("No results, try another keyword/link!")
             else:
-                await self.delete_last_queue_message()
-            #if not ("watch?v=" in track):
-            #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
-            #else:
-                self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                await self.last_queue_message.add_reaction("🗑")
+                self.playque.add(request)
+                
+                    #self.driver.get(track)     
+                    #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
+                    #self.que_title.append(soup.title.string)
+                    #self.driver.get("data:,")
+                    #link = track
+                    #response = urllib.request.urlopen(url)
+                    #html = response.read()
+                    #soup = BeautifulSoup(html, "html.parser")
+                    #self.driver.close()
+                    
+                    #results = soup.findAll("a",{"id":"video-title"})
+                    #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
+
+                if len(self.playque) == 1:
+                    await self.play_link(ctx,request.url)
+                else:
+                    await self.delete_last_queue_message()
+                #if not ("watch?v=" in track):
+                #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
+                #else:
+                    self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
+                    await self.last_queue_message.add_reaction("🗑")
             #else:
             #    await self.song(ctx)
     
@@ -209,7 +213,6 @@ class music(commands.Cog):
             #self.text_channel = ctx.message.channel
 
         #print (url)
-        #if not ("watch?v=" in url):
         #    url = self.convert_to_youtube_link(url)
         #print (url)       
             FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
@@ -263,6 +266,10 @@ class music(commands.Cog):
 
     def convert_to_songrequest(self, title, user):
         """Searches youtube for the video title and returns the first results video link"""
+        #print("Pina coladas")
+        if  "watch?v=" in title and "&" in title:
+        #    print("Pina colada")
+            title = title.split("&")[0]
         filter(lambda x: x in set(printable), title)
         # Parse the search result page for the first results link
         query = urllib.parse.quote_plus(title)
@@ -310,7 +317,7 @@ class music(commands.Cog):
             await self.quit(None,username=user.name)
         
         elif reaction.emoji == "🗑" and self.last_queue_message==reaction.message:
-            await self.remove(None,len(self.playque),username=user.name)
+            await self.remove(None,len(self.playque)-1,username=user.name)
             await self.delete_last_queue_message()
 
     @commands.Cog.listener()
@@ -326,7 +333,7 @@ class music(commands.Cog):
     async def song(self,ctx):
         #### Create the initial embed object ####
         if not self.playque.empty():
-            embed=discord.Embed(title=self.playque[0].title,
+            embed=discord.Embed(title="{}".format(self.playque[0].title),
                                 description="{} | Requested by {}".format(self.playque[0].duration,self.playque[0].requester), 
                                 url=self.playque[0].url, color=0xDCDCDC
                                 )

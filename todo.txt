@@ -12,8 +12,7 @@ Retrieve YouTube data via youtube-dl instead of selenium
 Add manual search, present x query results & let users pick
 Remove specific song from queue by keyword
 Forcibly play a song regardless of queue position
-YouTube Playlist(?) - queue all songs in given playlist
-Volume control
+YouTube Playlist(?) - queue all songs in list
 Soundcloud support
 Age restriction - some videos are age restricted by YouTube
 
@@ -21,3 +20,4 @@ Age restriction - some videos are age restricted by YouTube
 skip quit download
 temp it up ragnarok
 dszsdv
+!play https://www.youtube.com/watch?v=qCa64XOO5Ng&list=PLagoS9fsucPngvXMK8ScAUBRXsyARHYzZ&index=2&ab_channel=LostInLofi

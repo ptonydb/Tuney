@@ -45,13 +45,13 @@ class Playlist:
         else:
             return False
 
-    def current(self):
+    def current_song(self):
         if not self.empty():
             return self.playque[0]
         else:
             return None
 
-    def next(self):
+    def next_song(self):
         if self.has_queued():
             return self.playque[1]
         else:
@@ -61,13 +61,18 @@ class Playlist:
     #        if self.playque[i].title == title:
     #            self.remove(i)
     async def embedlist(self,ctx):
-        embed=discord.Embed()
-        for i in range(len(self.playque)):
-            embed.add_field(name="\u200b",
-                            value="{}{} {}".format(i if i != 0 else "▷  ", "." if i != 0 else "",self.playque[i].title),
-                            inline=False)     
-        embed.set_author(name="Playlist: ", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-        sent_embed = await ctx.send(embed=embed)
+        if not self.empty():
+            #embed=discord.Embed()
+            embed=discord.Embed(title="```▷ {}```".format(self.current_song().title))
+            str = ""
+            for i in range(1,len(self.playque)):
+                #embed.add_field(name="\u200b",
+                #                value="{}{} {}{}".format(i if i != 0 else "```▷ ", "." if i != 0 else "",self.playque[i].title,"" if i != 0 else "```"),
+                #                inline=False)
+                str += ("\n{}. {}".format(i,self.playque[i].title))
+            embed.set_footer(text=str)
+            embed.set_author(name="Playlist: ", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            return await ctx.send(embed=embed)
 
 
 

@@ -14,7 +14,7 @@ class CustomHelp(commands.MinimalHelpCommand):
         helpBlock.set_thumbnail(url="https://cdn.discordapp.com/emojis/880523014071009391.gif?v=1")
 
         helpBlock.add_field(name="!play <keywords/YouTube link>", value="Plays/queues most relevant video on YouTube.", inline=False) 
-        helpBlock.add_field(name="!remove <queue slot number>", value="Deletes🗑️ a requested song from the playlist.", inline=False)
+        helpBlock.add_field(name="!remove <queue slot number>", value="Deletes 🗑️ a requested song from the playlist.", inline=False)
         helpBlock.add_field(name="!search <keywords>", value="Looks up top 10 most relevant videos for playback.", inline=False)
         helpBlock.add_field(name="!song", value="Shows now playing.", inline=False)
         helpBlock.add_field(name="!list", value="Shows playlist queue.", inline=False)
