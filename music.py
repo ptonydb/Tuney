@@ -101,7 +101,7 @@ class music(commands.Cog):
             #self.text_channel = None
         self.playque.clear()
         await self.delete_last_queue_message()
-        await self.delete_last_now_playing()
+        await self.delete_last_now_playing(self.last_now_playing)
         if username is None:
             username = ctx.author.name
         print("[{}] {} booted the bot...".format(self.get_time_string(),username))
@@ -160,10 +160,13 @@ class music(commands.Cog):
             if username is None:
                 username = ctx.author.name
             print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
-            await ctx.channel.send("Removed from the playlist: ```{}```".format(removed.title), delete_after=5.0)
+            await ctx.send("Removed from the playlist: ```{}```".format(removed.title), delete_after=5.0)
+        else:
+            #await ctx.send("Invalid slot number, use ***!list*** command to see the playlist.", delete_after=5.0)
+            await ctx.send("Invalid slot number! Use ***!song***", delete_after=5.0)
         #if self.last_now_playing is not None:
             #await self.list(ctx)
-            #await self.song(self.last_now_playing.channel)
+        #await self.song(ctx)
 
     @commands.command()
     async def list(self,ctx):
@@ -200,13 +203,18 @@ class music(commands.Cog):
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
                 else:
                     await self.delete_last_queue_message()
+                    self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
+                    
                     #print("[{}] {} added '{}' to the playlist...".format(self.get_time_string(),ctx.author.name,request.title))
             
                 #if not ("watch?v=" in track):
                 #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
                 #else:
-                    self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                    await self.last_queue_message.add_reaction("🗑")
+                    try:
+                        await self.last_queue_message.add_reaction("🗑")
+                    except Exception as e:
+                        print("[{}] Cannot add reaction.".format(self.get_time_string()))
+
                     #await self.song(ctx)
 
     
@@ -221,7 +229,7 @@ class music(commands.Cog):
         #    url = self.convert_to_youtube_link(url)
         #print (url)       
             FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-            YDL_OPTIONS = {'format':"bestaudio"}
+            YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
             #self.voice_channel.stop()
             with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -262,14 +270,9 @@ class music(commands.Cog):
             if not self.playque.empty():
                 next_song = self.playque[0].url
                 #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
-               
-                
-        #if next_song is not None:
+    
         coro = self.play_link(ctx,next_song)
         self.client.loop.create_task(coro)
-        #else:
-        #    coro = self.song(ctx)
-        #    self.client.loop.create_task(coro)
 
     def convert_to_songrequest(self, title, user):
         """Searches youtube for the video title and returns the first results video link"""
@@ -315,16 +318,16 @@ class music(commands.Cog):
         elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
             self.toggle_loop(user.name)
         elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
-            await self.pause(reaction.message,username=user.name)
+            await self.pause(reaction.message.channel,username=user.name)
         elif reaction.emoji == "⏭️" and self.last_now_playing==reaction.message:
-            await self.skip(reaction.message,username=user.name)
+            await self.skip(reaction.message.channel,username=user.name)
         elif reaction.emoji == "🛑" and self.last_now_playing==reaction.message:
-            await self.stop(reaction.message,username=user.name)
+            await self.stop(reaction.message.channel,username=user.name)
         elif reaction.emoji == "❌" and self.last_now_playing==reaction.message:
-            await self.quit(reaction.message,username=user.name)
+            await self.quit(reaction.message.channel,username=user.name)
         
         elif reaction.emoji == "🗑" and self.last_queue_message==reaction.message:
-            await self.remove(reaction.message,len(self.playque)-1,username=user.name)
+            await self.remove(reaction.message.channel,len(self.playque)-1,username=user.name)
             await self.delete_last_queue_message()
 
     @commands.Cog.listener()
@@ -334,7 +337,7 @@ class music(commands.Cog):
         elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
             self.toggle_loop(user.name)
         elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
-            await self.resume(None,username=user.name)
+            await self.resume(reaction.message.channel,username=user.name)
 
     @commands.command()
     async def song(self,ctx):
@@ -354,18 +357,26 @@ class music(commands.Cog):
             else:
                 embed.set_footer(text="Up next: empty queue!")
             embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-            await self.delete_last_now_playing()
+            await self.delete_last_now_playing(self.last_now_playing)
             self.last_now_playing = await ctx.send(embed=embed)
-            await self.last_now_playing.add_reaction("🔂")
-            await self.last_now_playing.add_reaction("⏯")
-            await self.last_now_playing.add_reaction("⏭️")
-            await self.last_now_playing.add_reaction("🛑")
+            try:
+                await self.last_now_playing.add_reaction("🔂")
+                await self.last_now_playing.add_reaction("⏯")
+                await self.last_now_playing.add_reaction("⏭️")
+                await self.last_now_playing.add_reaction("🛑")
+            except Exception as e:
+                print("[{}] Cannot add reaction.".format(self.get_time_string()))
+
         else:
             embed=discord.Embed(title="Nothing is currently playing.", color=0xDCDCDC)
             embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-            await self.delete_last_now_playing()
+            await self.delete_last_now_playing(self.last_now_playing
+            )
             self.last_now_playing = await ctx.send(embed=embed)
-            await self.last_now_playing.add_reaction("❌")
+            try:
+                await self.last_now_playing.add_reaction("❌")
+            except Exception as e:
+                print("[{}] Cannot add reaction.".format(self.get_time_string()))
         # Add author, thumbnail, fields, and footer to the embed
         #embed.set_thumbnail(url=self.que_thumbnail[0])
         #embed.add_field(name="Up next:", value="Index 0 of title que", inline=False) 
@@ -379,13 +390,21 @@ class music(commands.Cog):
 
     async def delete_last_queue_message(self):
         if self.last_queue_message is not None:
-            await self.last_queue_message.delete()
+            try:
+                await self.last_queue_message.delete()
+            except Exception as e:
+                print("[{}] Last message is already deleted.".format(self.get_time_string()))
             self.last_queue_message = None
 
-    async def delete_last_now_playing(self):
-        if self.last_now_playing is not None:
-            await self.last_now_playing.delete()
-            self.last_now_playing = None
+    async def delete_last_now_playing(self,last_now_playing=None):
+        if last_now_playing is None:
+            last_now_playing = self.last_now_playing
+        if last_now_playing is not None:
+            try:
+                await self.last_now_playing.delete()
+            except Exception as e:
+                print("[{}] Last message is already deleted.".format(self.get_time_string()))
+            last_now_playing = None
 
     @commands.command()
     async def nodat(self,ctx):
@@ -422,9 +441,15 @@ class music(commands.Cog):
 
         for i in range(checked_videos):
             if i == 9:
-                await sent_embed.add_reaction("🔟")
+                try:
+                    await sent_embed.add_reaction("🔟")
+                except Exception as e:
+                    print("[{}] Cannot add reaction.".format(self.get_time_string()))
             else:
-                await sent_embed.add_reaction("{}\u20e3".format(i+1))
+                try:
+                    await sent_embed.add_reaction("{}\u20e3".format(i+1))
+                except Exception as e:
+                    print("[{}] Cannot add reaction.".format(self.get_time_string()))
         return video_url_list
         
     """

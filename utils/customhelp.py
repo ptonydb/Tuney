@@ -25,5 +25,5 @@ class CustomHelp(commands.MinimalHelpCommand):
         helpBlock.add_field(name="!stop", value="🛑", inline=True)
         helpBlock.add_field(name="!quit", value="❌", inline=True)
 #helpBlock.add_field(name="!playing", value="Shows now playing.", inline=True)
-        helpBlock.add_field(name="!nodat", value="Bar Dat from the party.", inline=True)
+        #helpBlock.add_field(name="!nodat", value="Bar Dat from the party.", inline=True)
         await destination.send(embed=helpBlock)

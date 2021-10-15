@@ -73,6 +73,10 @@ class Playlist:
             embed.set_footer(text=str)
             embed.set_author(name="Playlist: ", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
             return await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(title="```No songs here...```")
+            embed.set_author(name="Playlist: ", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            return await ctx.send(embed=embed)
 
 
 
