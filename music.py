@@ -2,12 +2,13 @@ import discord
 from discord.ext import commands
 import youtube_dl
 #from collections import deque
-from string import printable
-import urllib
-import urllib.parse
+
+#from string import printable
+#import urllib
+#import urllib.parse
 #import urllib.request
-from bs4 import BeautifulSoup
-from selenium import webdriver
+#from bs4 import BeautifulSoup
+#from selenium import webdriver
 
 from youtube_search import YoutubeSearch
 
@@ -17,7 +18,8 @@ from utils.customhelp import CustomHelp
 
 from datetime import datetime
 
-import os
+#import os
+
 #import asyncio
 
 class music(commands.Cog):
@@ -43,6 +45,7 @@ class music(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
         self.YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
             
+        """
         option = webdriver.ChromeOptions()
         option.add_argument('log-level=2')
         option.add_argument('--headless')
@@ -54,7 +57,7 @@ class music(commands.Cog):
         chrome_prefs["profile.default_content_settings"] = {"images": 2}
         chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
         self.driver = webdriver.Chrome(chrome_options=option)
-
+        """
 
 
     #test function
@@ -115,11 +118,13 @@ class music(commands.Cog):
         #self.que_title.clear()
         #self.que_thumbnail.clear()
         #self.que_author.clear()
-
+        
+    """
     def clear_song_cache(self):
         if self.current_song_path is not None:
             os.remove(self.current_song_path)
         self.current_song_path = None
+    """
 
     def toggle_loop(self,username):
         self.loop_song = not self.loop_song
@@ -172,12 +177,7 @@ class music(commands.Cog):
             if username is None:
                 username = ctx.author.name
             print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
-            #await ctx.send("Removed from the playlist: ```{}```".format(removed.title), delete_after=5.0)
-        #else:
-            #await ctx.send("Invalid slot number, use ***!list*** command to see the playlist.", delete_after=5.0)
-            #await ctx.send("Invalid slot number! Use ***!song***", delete_after=5.0)
-        #if self.last_now_playing is not None:
-            #await self.list(ctx)
+
             await self.update_embed()
 
     #@commands.command()
@@ -198,19 +198,6 @@ class music(commands.Cog):
             else:
                 self.playque.add(request)
                 print("[{}] {} added '{}'...".format(self.get_time_string(),ctx.author.name,request.title))
-            
-                    #self.driver.get(track)     
-                    #soup = BeautifulSoup(self.driver.page_source, "html.parser")   
-                    #self.que_title.append(soup.title.string)
-                    #self.driver.get("data:,")
-                    #link = track
-                    #response = urllib.request.urlopen(url)
-                    #html = response.read()
-                    #soup = BeautifulSoup(html, "html.parser")
-                    #self.driver.close()
-                    
-                    #results = soup.findAll("a",{"id":"video-title"})
-                    #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
 
                 if len(self.playque) == 1:
                     await self.play_link(ctx,request.url)
@@ -249,8 +236,9 @@ class music(commands.Cog):
     
         return None
 
+    """
     def convert_to_songrequest(self, title, user):
-        """Searches youtube for the video title and returns the first results video link"""
+        #Searches youtube for the video title and returns the first results video link
         #print("Pina coladas")
         if  "watch?v=" in title and "&" in title:
         #    print("Pina colada")
@@ -285,6 +273,7 @@ class music(commands.Cog):
                 #return 'https://www.youtube.com' + results[checked_videos].h3.a['href']
             checked_videos += 1
         return None
+    """
 
     async def play_link(self,ctx,url:str):
         if url is None:
