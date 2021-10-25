@@ -183,7 +183,7 @@ class music(commands.Cog):
             #request = self.convert_to_songrequest(track,ctx.author.name)
             #request = self.track_to_link(track)
             request = self.link_to_songrequest(track,ctx.author.name)
-            print (request.thumbnail)
+            #print (request.thumbnail)
             if request is None:
                 await ctx.send("```No results, try another keyword/link!```",delete_after=10.0)
             else:
