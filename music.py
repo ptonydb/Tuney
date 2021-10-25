@@ -221,7 +221,6 @@ class music(commands.Cog):
                     except Exception as e:
                         print("[{}] Cannot add reaction.".format(self.get_time_string()))
 
-                    #await self.song(ctx)
 
     def track_to_link(self, title):
         """Searches youtube for the video title and returns the first results video link"""
@@ -318,15 +317,21 @@ class music(commands.Cog):
 
     async def play_link(self,ctx,url:str):
         if url is None:
+            #await self.delete_last_queue_message()
             await self.song(ctx)
             return
         if (await self.join(ctx)):
+            if not self.loop_song:
+                #await self.delete_last_queue_message()
+                await self.song(ctx)
+
+            print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
             #self.text_channel = ctx.message.channel
 
         #print (url)
         #    url = self.convert_to_youtube_link(url)
         #print (url)       
-            FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
             YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
             #self.voice_channel.stop()
             with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
@@ -334,11 +339,8 @@ class music(commands.Cog):
                 url2 = info['formats'][0]['url']
                 
                 #self.playque[0].duration = self.format_duration(info['duration'])
-                        
-                if not self.loop_song:
-                    await self.song(ctx)
+        
                 #await self.text_channel.send(url)
-                print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
                 source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
                 self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
