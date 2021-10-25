@@ -160,13 +160,13 @@ class music(commands.Cog):
             if username is None:
                 username = ctx.author.name
             print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
-            await ctx.send("Removed from the playlist: ```{}```".format(removed.title), delete_after=5.0)
-        else:
+            #await ctx.send("Removed from the playlist: ```{}```".format(removed.title), delete_after=5.0)
+        #else:
             #await ctx.send("Invalid slot number, use ***!list*** command to see the playlist.", delete_after=5.0)
-            await ctx.send("Invalid slot number! Use ***!song***", delete_after=5.0)
+            #await ctx.send("Invalid slot number! Use ***!song***", delete_after=5.0)
         #if self.last_now_playing is not None:
             #await self.list(ctx)
-        #await self.song(ctx)
+            await self.update_embed()
 
     @commands.command()
     async def list(self,ctx):
@@ -203,8 +203,9 @@ class music(commands.Cog):
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
                 else:
                     await self.delete_last_queue_message()
-                    self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                    
+                    #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
+                    self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title),delete_after=10.0)
+                    await self.update_embed()
                     #print("[{}] {} added '{}' to the playlist...".format(self.get_time_string(),ctx.author.name,request.title))
             
                 #if not ("watch?v=" in track):
@@ -328,6 +329,7 @@ class music(commands.Cog):
         
         elif reaction.emoji == "🗑" and self.last_queue_message==reaction.message:
             await self.remove(reaction.message.channel,len(self.playque)-1,username=user.name)
+            #await self.update_embed()
             await self.delete_last_queue_message()
 
     @commands.Cog.listener()
@@ -388,6 +390,35 @@ class music(commands.Cog):
         ## User's avatar URL
         #ctx.author.avatar_url
 
+    async def update_embed(self,ctx = None):
+        #### Create the initial embed object ####
+        if not self.playque.empty():
+            edit=discord.Embed(title="{}".format(self.playque[0].title),
+                                description="{} | Requested by {}".format(self.playque[0].duration,self.playque[0].requester), 
+                                url=self.playque[0].url, color=0xDCDCDC
+                                )
+
+            edit.set_thumbnail(url=self.playque[0].thumbnail)
+            if self.playque.has_queue():
+                upnext = ""
+                for i in range(1,len(self.playque)):
+                    upnext += ("\n{}. {}".format(i,self.playque[i].title))
+                edit.set_footer(text="Up next: "+upnext)
+                #embed.set_footer(text="Up next: \n"+self.playque[1].title)
+            else:
+                edit.set_footer(text="Up next: empty queue!")
+            #edit.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            #await self.delete_last_now_playing(self.last_now_playing)
+            await self.last_now_playing.edit(embed=edit)
+            #try:
+            #    await self.last_now_playing.add_reaction("🔂")
+            #    await self.last_now_playing.add_reaction("⏯")
+            #    await self.last_now_playing.add_reaction("⏭️")
+            #    await self.last_now_playing.add_reaction("🛑")
+            #except Exception as e:
+            #    print("[{}] Cannot add reaction.".format(self.get_time_string()))
+
+
     async def delete_last_queue_message(self):
         if self.last_queue_message is not None:
             try:
@@ -410,6 +441,8 @@ class music(commands.Cog):
     async def nodat(self,ctx):
         await ctx.send("Dat La is now your Butt Buddy.")
 
+
+    """
     @commands.command()
     async def search(self,ctx,*,title):
         if not title:
@@ -451,7 +484,7 @@ class music(commands.Cog):
                 except Exception as e:
                     print("[{}] Cannot add reaction.".format(self.get_time_string()))
         return video_url_list
-        
+    """
     """
     @commands.command()
     async def help(self,ctx):

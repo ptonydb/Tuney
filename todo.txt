@@ -20,5 +20,6 @@ Age restriction - some videos are age restricted by YouTube
 skip quit download
 temp it up ragnarok
 dszsdv
+!play wait and bleed
 !play https://www.youtube.com/watch?v=qCa64XOO5Ng&list=PLagoS9fsucPngvXMK8ScAUBRXsyARHYzZ&index=2&ab_channel=LostInLofi
 Playing: Ray J - One Wish (Official Music Video) in HQ with lyrics
