@@ -8,13 +8,16 @@ import urllib.parse
 #import urllib.request
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from utils.songrequest import SongRequest
-from utils.playlist import Playlist
-from datetime import datetime
-from utils.customhelp import CustomHelp
 
 from youtube_search import YoutubeSearch
 
+from utils.songrequest import SongRequest
+from utils.playlist import Playlist
+from utils.customhelp import CustomHelp
+
+from datetime import datetime
+
+import os
 #import asyncio
 
 class music(commands.Cog):
@@ -23,9 +26,6 @@ class music(commands.Cog):
         self.client.help_command = CustomHelp()
         #self.client.remove_command('help')
         self.playque = Playlist()
-        #self.que_title = deque()
-        #self.que_thumbnail = deque()
-        #self.que_author = deque()
 
         self.voice_client = None
         self.voice_channel = None
@@ -36,10 +36,13 @@ class music(commands.Cog):
 
         self.loop_song = False
 
+        self.current_song_path = None
         #intended to stopped users from abusing buttons
         #self.last_action = None
         #self.last_user = None
-        
+        self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
+        self.YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
+            
         option = webdriver.ChromeOptions()
         option.add_argument('log-level=2')
         option.add_argument('--headless')
@@ -52,7 +55,6 @@ class music(commands.Cog):
         chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
         self.driver = webdriver.Chrome(chrome_options=option)
 
-        #print("\n\nBot started, listening for commands...\n\n")
 
 
     #test function
@@ -81,6 +83,7 @@ class music(commands.Cog):
         if author_voice is None or author_voice.channel is None:
             await ctx.send("You need to be in a voice channel!", delete_after=10.0)
             return False
+        #Join their channel
         elif self.voice_client is None:
             self.voice_client = await author_voice.channel.connect()
             self.voice_channel = author_voice.channel
@@ -102,14 +105,21 @@ class music(commands.Cog):
             self.voice_channel = None
             #self.text_channel = None
         self.playque.clear()
+        self.loop_song = False
+        #self.clear_song_cache()
         await self.delete_last_queue_message()
-        await self.delete_last_now_playing(self.last_now_playing)
+        await self.delete_last_now_playing()
         if username is None:
             username = ctx.author.name
         print("[{}] {} booted the bot...".format(self.get_time_string(),username))
         #self.que_title.clear()
         #self.que_thumbnail.clear()
         #self.que_author.clear()
+
+    def clear_song_cache(self):
+        if self.current_song_path is not None:
+            os.remove(self.current_song_path)
+        self.current_song_path = None
 
     def toggle_loop(self,username):
         self.loop_song = not self.loop_song
@@ -170,10 +180,9 @@ class music(commands.Cog):
             #await self.list(ctx)
             await self.update_embed()
 
-    @commands.command()
-    async def list(self,ctx):
-        await self.playque.embedlist(ctx)
-        #print(self.playque)
+    #@commands.command()
+    #async def list(self,ctx):
+    #    await self.playque.embedlist(ctx)
 
     @commands.command()
     async def play(self,ctx,*,track):
@@ -220,44 +229,6 @@ class music(commands.Cog):
                         await self.last_queue_message.add_reaction("🗑")
                     except Exception as e:
                         print("[{}] Cannot add reaction.".format(self.get_time_string()))
-
-
-    def track_to_link(self, title):
-        """Searches youtube for the video title and returns the first results video link"""
-        #print("Pina coladas")
-        if  "watch?v=" in title and "&" in title:
-        #    print("Pina colada")
-            title = title.split("&")[0]
-        filter(lambda x: x in set(printable), title)
-        # Parse the search result page for the first results link
-        query = urllib.parse.quote_plus(title)
-        url = "https://www.youtube.com/results?search_query=" + query
-
-        url = urllib.request.urlopen(url)
-        soup = BeautifulSoup(url.read(), "html.parser")   
-        #response = urllib.request.urlopen(url)
-        #html = response.read()
-        #soup = BeautifulSoup(html, "html.parser")
-        #self.driver.close()
-        
-        #results = soup.findAll("a",{"id":"video-title"})
-        #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
-        results = soup.findAll("ytd-video-renderer",{"class":"style-scope ytd-item-section-renderer"})
-        checked_videos = 0;
-        while len(results) > checked_videos:
-            if "user" not in results[checked_videos].h3.a['href'] and "&list=" not in results[checked_videos].h3.a['href']:
-                return SongRequest(title=results[checked_videos].h3.a['title'],
-                                    url='https://www.youtube.com' + results[checked_videos].h3.a['href'],
-                                    thumbnail=results[checked_videos].find("img",{"class":"style-scope yt-img-shadow"})['src'], 
-                                    requester=user,
-                                    #duration=results[checked_videos].find("span",{"id":"text"}),
-                                    views=results[checked_videos].find("span",{"class":"style-scope ytd-video-meta-block"}).string)
-                #self.que_title.append(results[checked_videos].h3.a['title'])
-                #self.que_thumbnail.append(results[checked_videos].div.a.img['src'])
-                #self.que_author.append()
-                #return 'https://www.youtube.com' + results[checked_videos].h3.a['href']
-            checked_videos += 1
-        return None
 
     def link_to_songrequest(self, title, user):
         #Searches youtube for the video title and returns the first results video link
@@ -331,22 +302,22 @@ class music(commands.Cog):
         #print (url)
         #    url = self.convert_to_youtube_link(url)
         #print (url)       
-            FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
-            YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
             #self.voice_channel.stop()
-            with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
+            with youtube_dl.YoutubeDL(self.YDL_OPTIONS) as ydl:
                 info = ydl.extract_info(url, download=False)
                 url2 = info['formats'][0]['url']
                 
-                #self.playque[0].duration = self.format_duration(info['duration'])
+                #self.playque[0].duration = self.seconds_to_duration(info['duration'])
         
                 #await self.text_channel.send(url)
-                source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
+                source = await discord.FFmpegOpusAudio.from_probe(url2, **self.FFMPEG_OPTIONS)
+                #source = discord.FFmpegPCMAudio(url2, **FFMPEG_OPTIONS)
                 self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
 
-    def format_duration(self,seconds):
+
+    def seconds_to_duration(self,seconds):
         hours = seconds // 3600
         minutes = (seconds % 3600) // 60
         seconds = (seconds % 60)
@@ -363,6 +334,7 @@ class music(commands.Cog):
         next_song = None
         if not self.playque.empty():
             if not self.loop_song:
+                #self.clear_song_cache()
                 self.playque.popleft()
                 #self.que_title.popleft()
                 #self.que_thumbnail.popleft()
@@ -421,7 +393,7 @@ class music(commands.Cog):
             else:
                 embed.set_footer(text="Up next: empty queue!")
             embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-            await self.delete_last_now_playing(self.last_now_playing)
+            await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
             try:
                 await self.last_now_playing.add_reaction("🔂")
@@ -434,8 +406,7 @@ class music(commands.Cog):
         else:
             embed=discord.Embed(title="Nothing is currently playing.", color=0xDCDCDC)
             embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-            await self.delete_last_now_playing(self.last_now_playing
-            )
+            await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
             try:
                 await self.last_now_playing.add_reaction("❌")
@@ -469,17 +440,9 @@ class music(commands.Cog):
                 #embed.set_footer(text="Up next: \n"+self.playque[1].title)
             else:
                 edit.set_footer(text="Up next: empty queue!")
-            #edit.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            edit.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
             #await self.delete_last_now_playing(self.last_now_playing)
             await self.last_now_playing.edit(embed=edit)
-            #try:
-            #    await self.last_now_playing.add_reaction("🔂")
-            #    await self.last_now_playing.add_reaction("⏯")
-            #    await self.last_now_playing.add_reaction("⏭️")
-            #    await self.last_now_playing.add_reaction("🛑")
-            #except Exception as e:
-            #    print("[{}] Cannot add reaction.".format(self.get_time_string()))
-
 
     async def delete_last_queue_message(self):
         if self.last_queue_message is not None:
@@ -489,15 +452,13 @@ class music(commands.Cog):
                 print("[{}] Last message is already deleted.".format(self.get_time_string()))
             self.last_queue_message = None
 
-    async def delete_last_now_playing(self,last_now_playing=None):
-        if last_now_playing is None:
-            last_now_playing = self.last_now_playing
-        if last_now_playing is not None:
+    async def delete_last_now_playing(self):
+        if self.last_now_playing is not None:
             try:
                 await self.last_now_playing.delete()
             except Exception as e:
                 print("[{}] Last message is already deleted.".format(self.get_time_string()))
-            last_now_playing = None
+            self.last_now_playing = None
 
     @commands.command()
     async def nodat(self,ctx):

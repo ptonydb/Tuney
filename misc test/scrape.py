@@ -32,7 +32,7 @@ chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
 driver = webdriver.Chrome(options=option)
 
 
-YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
+YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'source_address': '0.0.0.0','ignoreerrors': False,'noplaylist': True, 'quiet': False,'default_search': 'ytsearch'}
             
 
 def func_test(f,x):
