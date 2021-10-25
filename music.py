@@ -13,6 +13,8 @@ from utils.playlist import Playlist
 from datetime import datetime
 from utils.customhelp import CustomHelp
 
+from youtube_search import YoutubeSearch
+
 #import asyncio
 
 class music(commands.Cog):
@@ -178,7 +180,10 @@ class music(commands.Cog):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
-            request = self.convert_to_songrequest(track,ctx.author.name)
+            #request = self.convert_to_songrequest(track,ctx.author.name)
+            #request = self.track_to_link(track)
+            request = self.link_to_songrequest(track,ctx.author.name)
+            print (request.thumbnail)
             if request is None:
                 await ctx.send("```No results, try another keyword/link!```",delete_after=10.0)
             else:
@@ -218,62 +223,61 @@ class music(commands.Cog):
 
                     #await self.song(ctx)
 
+    def track_to_link(self, title):
+        """Searches youtube for the video title and returns the first results video link"""
+        #print("Pina coladas")
+        if  "watch?v=" in title and "&" in title:
+        #    print("Pina colada")
+            title = title.split("&")[0]
+        filter(lambda x: x in set(printable), title)
+        # Parse the search result page for the first results link
+        query = urllib.parse.quote_plus(title)
+        url = "https://www.youtube.com/results?search_query=" + query
+
+        url = urllib.request.urlopen(url)
+        soup = BeautifulSoup(url.read(), "html.parser")   
+        #response = urllib.request.urlopen(url)
+        #html = response.read()
+        #soup = BeautifulSoup(html, "html.parser")
+        #self.driver.close()
+        
+        #results = soup.findAll("a",{"id":"video-title"})
+        #thumbs = soup.findAll("img",{"class":"style-scope yt-img-shadow"})
+        results = soup.findAll("ytd-video-renderer",{"class":"style-scope ytd-item-section-renderer"})
+        checked_videos = 0;
+        while len(results) > checked_videos:
+            if "user" not in results[checked_videos].h3.a['href'] and "&list=" not in results[checked_videos].h3.a['href']:
+                return SongRequest(title=results[checked_videos].h3.a['title'],
+                                    url='https://www.youtube.com' + results[checked_videos].h3.a['href'],
+                                    thumbnail=results[checked_videos].find("img",{"class":"style-scope yt-img-shadow"})['src'], 
+                                    requester=user,
+                                    #duration=results[checked_videos].find("span",{"id":"text"}),
+                                    views=results[checked_videos].find("span",{"class":"style-scope ytd-video-meta-block"}).string)
+                #self.que_title.append(results[checked_videos].h3.a['title'])
+                #self.que_thumbnail.append(results[checked_videos].div.a.img['src'])
+                #self.que_author.append()
+                #return 'https://www.youtube.com' + results[checked_videos].h3.a['href']
+            checked_videos += 1
+        return None
+
+    def link_to_songrequest(self, title, user):
+        #Searches youtube for the video title and returns the first results video link
+        #filter(lambda x: x in set(printable), title)
+        # Parse the search result page for the first results link
+        #query = urllib.parse.quote_plus(title)
+        results = YoutubeSearch(title, max_results=5).to_dict()
+        #for i in range(len(results)):
+        #    print(results[i]['title'])
+        #print(results[0])
+        if len(results) > 0:
+            return SongRequest(title=results[0]['title'],
+                                url='https://www.youtube.com' + results[0]['url_suffix'],
+                                thumbnail=results[0]['thumbnails'][0], 
+                                requester=user,
+                                duration=results[0]['duration'],
+                                views=results[0]['views'])
     
-    async def play_link(self,ctx,url:str):
-        if url is None:
-            await self.song(ctx)
-            return
-        if (await self.join(ctx)):
-            #self.text_channel = ctx.message.channel
-
-        #print (url)
-        #    url = self.convert_to_youtube_link(url)
-        #print (url)       
-            FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-            YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
-            #self.voice_channel.stop()
-            with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
-                info = ydl.extract_info(url, download=False)
-                url2 = info['formats'][0]['url']
-                
-                self.playque[0].duration = self.format_duration(info['duration'])
-                        
-                if not self.loop_song:
-                    await self.song(ctx)
-                #await self.text_channel.send(url)
-                print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
-                source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
-                self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
-            #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
-            #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
-
-    def format_duration(self,seconds):
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        seconds = (seconds % 60)
-        return ("{}{}{}{}{}{}".format(hours if hours != 0 else "",
-                                     "" if hours == 0 else " hour " if hours == 1 else " hours ",
-                                     minutes if minutes != 0 else "",
-                                     "" if minutes == 0 else " second " if minutes == 1 else " minutes ",
-                                     seconds if seconds != 0 else "",
-                                     "" if seconds == 0 else " second" if seconds == 1 else " seconds",
-                                     ))
-
-    def next_song(self,ctx,error):
-        """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
-        next_song = None
-        if not self.playque.empty():
-            if not self.loop_song:
-                self.playque.popleft()
-                #self.que_title.popleft()
-                #self.que_thumbnail.popleft()
-                #self.que_author = deque()
-            if not self.playque.empty():
-                next_song = self.playque[0].url
-                #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
-    
-        coro = self.play_link(ctx,next_song)
-        self.client.loop.create_task(coro)
+        return None
 
     def convert_to_songrequest(self, title, user):
         """Searches youtube for the video title and returns the first results video link"""
@@ -311,6 +315,62 @@ class music(commands.Cog):
                 #return 'https://www.youtube.com' + results[checked_videos].h3.a['href']
             checked_videos += 1
         return None
+
+    async def play_link(self,ctx,url:str):
+        if url is None:
+            await self.song(ctx)
+            return
+        if (await self.join(ctx)):
+            #self.text_channel = ctx.message.channel
+
+        #print (url)
+        #    url = self.convert_to_youtube_link(url)
+        #print (url)       
+            FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
+            #self.voice_channel.stop()
+            with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
+                info = ydl.extract_info(url, download=False)
+                url2 = info['formats'][0]['url']
+                
+                #self.playque[0].duration = self.format_duration(info['duration'])
+                        
+                if not self.loop_song:
+                    await self.song(ctx)
+                #await self.text_channel.send(url)
+                print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
+                source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS)
+                self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
+            #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
+            #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
+
+    def format_duration(self,seconds):
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        seconds = (seconds % 60)
+        return ("{}{}{}{}{}{}".format(hours if hours != 0 else "",
+                                     "" if hours == 0 else " hour " if hours == 1 else " hours ",
+                                     minutes if minutes != 0 else "",
+                                     "" if minutes == 0 else " second " if minutes == 1 else " minutes ",
+                                     seconds if seconds != 0 else "",
+                                     "" if seconds == 0 else " second" if seconds == 1 else " seconds",
+                                     ))
+
+    def next_song(self,ctx,error):
+        """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
+        next_song = None
+        if not self.playque.empty():
+            if not self.loop_song:
+                self.playque.popleft()
+                #self.que_title.popleft()
+                #self.que_thumbnail.popleft()
+                #self.que_author = deque()
+            if not self.playque.empty():
+                next_song = self.playque[0].url
+                #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
+    
+        coro = self.play_link(ctx,next_song)
+        self.client.loop.create_task(coro)
     
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
