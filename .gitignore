@@ -1,10 +1,11 @@
 */__pycache__/
 __pycache__/
+logs/
 tests/
 config/config.py
-test.py
-test2.py
+test*.py
 .gitignore
 .gitattributes
 *.pyc
 *.pyo
+ffmpeg.exe

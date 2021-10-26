@@ -42,9 +42,15 @@ class music(commands.Cog):
         #intended to stopped users from abusing buttons
         #self.last_action = None
         #self.last_user = None
+
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
         self.YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
             
+        self.np_icon = "https://c.tenor.com/GcCv_0rvJlYAAAAC/taiga-circle.gif"
+        #"https://m.media-amazon.com/images/G/01/digital/music/player/web/sixteen_frame_equalizer_accent.gif"
+        self.np_stopped_icon = "https://c.tenor.com/brz3_pBWenIAAAAC/logo-circle.gif"
+        #"https://www.premierhealth.com/Content/images/loading.gif"
+
         """
         option = webdriver.ChromeOptions()
         option.add_argument('log-level=2')
@@ -58,8 +64,18 @@ class music(commands.Cog):
         chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
         self.driver = webdriver.Chrome(chrome_options=option)
         """
+    
+    @commands.command()
+    async def ui(self,ctx,*,icon_url):
+        self.np_icon=icon_url
+        await ctx.message.delete()
+        await self._now_playing(ctx)
 
-
+    @commands.command()
+    async def uis(self,ctx,*,icon_url):
+        self.np_stopped_icon=icon_url
+        await ctx.message.delete()
+        await self._now_playing(ctx)
     #test function
     @commands.command()
     async def test(self,ctx):
@@ -88,6 +104,7 @@ class music(commands.Cog):
             return False
         #Join their channel
         elif self.voice_client is None:
+            self.clear_yt_cache()
             self.voice_client = await author_voice.channel.connect()
             self.voice_channel = author_voice.channel
             return True
@@ -177,7 +194,12 @@ class music(commands.Cog):
             if username is None:
                 username = ctx.author.name
             print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
-
+            try:
+                await ctx.message.delete()
+                await ctx.send("Removed at slot {} | {}```{}```".format(index,username,removed.title),delete_after=10.0)
+            except Exception as e:
+                print("[{}] Used trashcan emoji to remove.".format(self.get_time_string()))
+            del removed
             await self.update_embed()
 
     #@commands.command()
@@ -185,7 +207,7 @@ class music(commands.Cog):
     #    await self.playque.embedlist(ctx)
 
     @commands.command(name = 'play')
-    async def _add_youtube(self,ctx,*,track):
+    async def _add_youtube(self,ctx,*,track, quiet=False):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
@@ -198,20 +220,27 @@ class music(commands.Cog):
             else:
                 self.playque.add(request)
                 print("[{}] {} added '{}'...".format(self.get_time_string(),ctx.author.name,request.title))
+                
+                try:
+                    await ctx.message.delete()
+                except Exception as e:
+                    print("[{}] No '!play' messages to remove.".format(self.get_time_string()))
 
                 if len(self.playque) == 1:
                     await self.play_link(ctx,request.url)
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
                 else:
-                    await self.delete_last_queue_message()
+                    if quiet is False:
+                        await self.delete_last_queue_message()
                     #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                    self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title),delete_after=10.0)
+                        self.last_queue_message = await ctx.send("Queued at slot {} | {}```{}```".format(len(self.playque)-1,request.requester,request.title),delete_after=10.0)
                     await self.update_embed()
                     #print("[{}] {} added '{}' to the playlist...".format(self.get_time_string(),ctx.author.name,request.title))
             
                 #if not ("watch?v=" in track):
                 #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
                 #else:
+                    
                     try:
                         await self.last_queue_message.add_reaction("🗑")
                     except Exception as e:
@@ -274,6 +303,9 @@ class music(commands.Cog):
             checked_videos += 1
         return None
     """
+
+    def clear_yt_cache(self):
+        youtube_dl.YoutubeDL().cache.remove()
 
     async def play_link(self,ctx,url:str):
         if url is None:
@@ -381,7 +413,9 @@ class music(commands.Cog):
                 #embed.set_footer(text="Up next: \n"+self.playque[1].title)
             else:
                 embed.set_footer(text="Up next: empty queue!")
-            embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            #embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            embed.set_author(name="Now playing:", icon_url=self.np_icon)
+            
             await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
             try:
@@ -394,7 +428,8 @@ class music(commands.Cog):
 
         else:
             embed=discord.Embed(title="Nothing is currently playing.", color=0xDCDCDC)
-            embed.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            embed.set_author(name="Now playing:", icon_url=self.np_stopped_icon)
+            #embed.set_author(name="Now playing:", icon_url="https://m.media-amazon.com/images/G/01/digital/music/player/web/sixteen_frame_equalizer_accent.gif")
             await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
             try:
@@ -429,8 +464,8 @@ class music(commands.Cog):
                 #embed.set_footer(text="Up next: \n"+self.playque[1].title)
             else:
                 edit.set_footer(text="Up next: empty queue!")
-            edit.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
-            #await self.delete_last_now_playing(self.last_now_playing)
+            #edit.set_author(name="Now playing:", icon_url="https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png")
+            edit.set_author(name="Now playing:", icon_url=self.np_icon)#await self.delete_last_now_playing(self.last_now_playing)
             await self.last_now_playing.edit(embed=edit)
 
     async def delete_last_queue_message(self):
