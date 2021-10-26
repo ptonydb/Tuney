@@ -1,4 +1,4 @@
-config/__pycache__/
+*/__pycache__/
 __pycache__/
 tests/
 config/config.py
@@ -6,3 +6,5 @@ test.py
 test2.py
 .gitignore
 .gitattributes
+*.pyc
+*.pyo
