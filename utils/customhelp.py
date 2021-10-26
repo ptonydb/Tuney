@@ -15,9 +15,9 @@ class CustomHelp(commands.MinimalHelpCommand):
 
         helpBlock.add_field(name="!play <keywords/YouTube link>", value="Plays/queues most relevant video on YouTube.", inline=False) 
         helpBlock.add_field(name="!remove <queue slot number>", value="Deletes 🗑️ a requested song from the playlist.", inline=False)
-        helpBlock.add_field(name="!search <keywords>", value="Looks up top 10 most relevant videos for playback.", inline=False)
+        #helpBlock.add_field(name="!search <keywords>", value="Looks up top 10 most relevant videos for playback.", inline=False)
         helpBlock.add_field(name="!song", value="Shows now playing.", inline=False)
-        helpBlock.add_field(name="!list", value="Shows playlist queue.", inline=False)
+        #helpBlock.add_field(name="!list", value="Shows playlist queue.", inline=False)
         helpBlock.add_field(name="!pause", value="⏸", inline=True)
         helpBlock.add_field(name="!resume", value="⏯", inline=True)
         helpBlock.add_field(name="!skip", value="⏭️", inline=True)

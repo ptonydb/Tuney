@@ -99,8 +99,8 @@ class music(commands.Cog):
         #await ctx.send("Hello, same channel.")
         return True
 
-    @commands.command()
-    async def quit(self,ctx,username=None):
+    @commands.command(name='quit')
+    async def _quit(self,ctx,username=None):
         if self.voice_client is not None:
             await self.voice_client.disconnect()
             #await ctx.send("fUck d@7",delete_after=10000)
@@ -118,7 +118,7 @@ class music(commands.Cog):
         #self.que_title.clear()
         #self.que_thumbnail.clear()
         #self.que_author.clear()
-        
+
     """
     def clear_song_cache(self):
         if self.current_song_path is not None:
@@ -133,24 +133,24 @@ class music(commands.Cog):
         else:
             print("[{}] {} unlooped current song...".format(self.get_time_string(),username))
         
-    @commands.command()
-    async def pause(self,ctx,username=None):
+    @commands.command(name='pause')
+    async def _pause(self,ctx,username=None):
         self.voice_client.pause()
         if username is None:
             username = ctx.author.name
         print("[{}] {} paused...".format(self.get_time_string(),username))
         #await self.text_channel.send("⏸")
     
-    @commands.command()
-    async def resume(self,ctx,username=None):
+    @commands.command(name='resume')
+    async def _resume(self,ctx,username=None):
         self.voice_client.resume()
         if username is None:
             username = ctx.author.name
         print("[{}] {} resumed...".format(self.get_time_string(),username))
         #await self.text_channel.send("⏯")
       
-    @commands.command()
-    async def skip(self,ctx,username=None):
+    @commands.command(name='skip')
+    async def _skip(self,ctx,username=None):
         self.loop_song = False
         self.voice_client.stop()
         if username is None:
@@ -158,8 +158,8 @@ class music(commands.Cog):
         print("[{}] {} skipped the song...".format(self.get_time_string(),username))
         #await self.text_channel.send("⏭️")
     
-    @commands.command()
-    async def stop(self,ctx,username=None):
+    @commands.command(name='stop')
+    async def _stop(self,ctx,username=None):
         self.playque.clear()
         self.voice_client.stop()
         self.loop_song = False
@@ -167,8 +167,8 @@ class music(commands.Cog):
             username = ctx.author.name
         print("[{}] {} stopped playback...".format(self.get_time_string(),username))
 
-    @commands.command()
-    async def remove(self,ctx,index:int,username=None):
+    @commands.command(name='remove')
+    async def _remove(self,ctx,index:int,username=None):
         #print(self.playque)
         if index > 0 and index < len(self.playque):
             #if index == 0:
@@ -184,8 +184,8 @@ class music(commands.Cog):
     #async def list(self,ctx):
     #    await self.playque.embedlist(ctx)
 
-    @commands.command()
-    async def play(self,ctx,*,track):
+    @commands.command(name = 'play')
+    async def _add_youtube(self,ctx,*,track):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
@@ -278,12 +278,12 @@ class music(commands.Cog):
     async def play_link(self,ctx,url:str):
         if url is None:
             #await self.delete_last_queue_message()
-            await self.song(ctx)
+            await self._now_playing(ctx)
             return
         if (await self.join(ctx)):
             if not self.loop_song:
                 #await self.delete_last_queue_message()
-                await self.song(ctx)
+                await self._now_playing(ctx)
 
             print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
             #self.text_channel = ctx.message.channel
@@ -342,16 +342,16 @@ class music(commands.Cog):
         elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
             self.toggle_loop(user.name)
         elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
-            await self.pause(reaction.message.channel,username=user.name)
+            await self._pause(reaction.message.channel,username=user.name)
         elif reaction.emoji == "⏭️" and self.last_now_playing==reaction.message:
-            await self.skip(reaction.message.channel,username=user.name)
+            await self._skip(reaction.message.channel,username=user.name)
         elif reaction.emoji == "🛑" and self.last_now_playing==reaction.message:
-            await self.stop(reaction.message.channel,username=user.name)
+            await self._stop(reaction.message.channel,username=user.name)
         elif reaction.emoji == "❌" and self.last_now_playing==reaction.message:
-            await self.quit(reaction.message.channel,username=user.name)
+            await self._quit(reaction.message.channel,username=user.name)
         
         elif reaction.emoji == "🗑" and self.last_queue_message==reaction.message:
-            await self.remove(reaction.message.channel,len(self.playque)-1,username=user.name)
+            await self._remove(reaction.message.channel,len(self.playque)-1,username=user.name)
             #await self.update_embed()
             await self.delete_last_queue_message()
 
@@ -362,10 +362,10 @@ class music(commands.Cog):
         elif reaction.emoji == "🔂" and self.last_now_playing==reaction.message:
             self.toggle_loop(user.name)
         elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
-            await self.resume(reaction.message.channel,username=user.name)
+            await self._resume(reaction.message.channel,username=user.name)
 
-    @commands.command()
-    async def song(self,ctx):
+    @commands.command(name='song')
+    async def _now_playing(self,ctx):
         #### Create the initial embed object ####
         if not self.playque.empty():
             embed=discord.Embed(title="{}".format(self.playque[0].title),

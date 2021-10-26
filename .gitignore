@@ -1,12 +1,6 @@
-
+config/__pycache__/
+__pycache__/
+tests/
 config/config.py
-config/__pycache__/config.cpython-38.pyc
-__pycache__/music.cpython-38.pyc
-config/__pycache__/config.cpython-38.pyc
 test.py
 test2.py
-misc test/scrape test.py
-member test.py
-scrape test.py
-misc test/ffmpeg.exe
-misc test/youtubedl test.py
