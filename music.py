@@ -50,7 +50,7 @@ class music(commands.Cog):
         #"https://m.media-amazon.com/images/G/01/digital/music/player/web/sixteen_frame_equalizer_accent.gif"
         self.np_stopped_icon = "https://c.tenor.com/brz3_pBWenIAAAAC/logo-circle.gif"
         #"https://www.premierhealth.com/Content/images/loading.gif"
-
+        #'https://www.clipartmax.com/png/middle/162-1627126_we-cook-the-beat-music-blue-icon-png.png'
         """
         option = webdriver.ChromeOptions()
         option.add_argument('log-level=2')
