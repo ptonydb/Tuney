@@ -68,9 +68,13 @@ class music(commands.Cog):
         """
         
     @commands.command()
-    async def v(self,ctx,*,icon_url):
+    async def v(self,ctx):
         self.user_verbose = not self.user_verbose
-        
+        if self.user_verbose:
+            await ctx.send("Verbose settings.", delete_after=30)
+        else:
+            await ctx.send("Non-verbose settings",delete_after=30)
+
     @commands.command()
     async def ui(self,ctx,*,icon_url):
         self.np_icon=icon_url
