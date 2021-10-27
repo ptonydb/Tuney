@@ -38,6 +38,8 @@ class music(commands.Cog):
 
         self.loop_song = False
 
+        self.user_verbose = True
+
         self.current_song_path = None
         #intended to stopped users from abusing buttons
         #self.last_action = None
@@ -64,7 +66,11 @@ class music(commands.Cog):
         chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
         self.driver = webdriver.Chrome(chrome_options=option)
         """
-    
+        
+    @commands.command()
+    async def v(self,ctx,*,icon_url):
+        self.user_verbose = not self.user_verbose
+        
     @commands.command()
     async def ui(self,ctx,*,icon_url):
         self.np_icon=icon_url
@@ -100,11 +106,10 @@ class music(commands.Cog):
     async def join(self,ctx):
         author_voice = ctx.author.voice
         if author_voice is None or author_voice.channel is None:
-            await ctx.send("You need to be in a voice channel!", delete_after=10.0)
+            #await ctx.send("You need to be in a voice channel!", delete_after=10.0)
             return False
         #Join their channel
         elif self.voice_client is None:
-            self.clear_yt_cache()
             self.voice_client = await author_voice.channel.connect()
             self.voice_channel = author_voice.channel
             return True
@@ -190,15 +195,20 @@ class music(commands.Cog):
         if index > 0 and index < len(self.playque):
             #if index == 0:
             #    return await self.skip(ctx,username)
+            await self.delete_last_queue_message()
             removed = self.playque.remove(index)
+            ###Removed using !remove command NOT emoji
             if username is None:
                 username = ctx.author.name
+                await ctx.send("Removed from slot {} [{}]```{}```".format(index,username,removed.title),delete_after=10.0)
+                if not self.user_verbose:
+                    await ctx.message.delete()
             print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
-            try:
-                await ctx.message.delete()
-                await ctx.send("Removed at slot {} | {}```{}```".format(index,username,removed.title),delete_after=10.0)
-            except Exception as e:
-                print("[{}] Used trashcan emoji to remove.".format(self.get_time_string()))
+
+            
+            #await ctx.send("Removed from slot {} [{}]```{}```".format(index,username,removed.title),delete_after=10.0)
+            #except Exception as e:
+            #    print("[{}] Used trashcan emoji to remove.".format(self.get_time_string()))
             del removed
             await self.update_embed()
 
@@ -221,11 +231,12 @@ class music(commands.Cog):
                 self.playque.add(request)
                 print("[{}] {} added '{}'...".format(self.get_time_string(),ctx.author.name,request.title))
                 
-                try:
-                    await ctx.message.delete()
-                except Exception as e:
-                    print("[{}] No '!play' messages to remove.".format(self.get_time_string()))
-
+                if not self.user_verbose:
+                    try:
+                        await ctx.message.delete()
+                    except Exception as e:
+                        print("[{}] No '!play' messages to remove.".format(self.get_time_string()))
+                
                 if len(self.playque) == 1:
                     await self.play_link(ctx,request.url)
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
@@ -233,7 +244,7 @@ class music(commands.Cog):
                     if quiet is False:
                         await self.delete_last_queue_message()
                     #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                        self.last_queue_message = await ctx.send("Queued at slot {} | {}```{}```".format(len(self.playque)-1,request.requester,request.title),delete_after=10.0)
+                        self.last_queue_message = await ctx.send("Queued at slot {} [{}]```{}```".format(len(self.playque)-1,request.requester,request.title),delete_after=10.0)
                     await self.update_embed()
                     #print("[{}] {} added '{}' to the playlist...".format(self.get_time_string(),ctx.author.name,request.title))
             
@@ -245,6 +256,8 @@ class music(commands.Cog):
                         await self.last_queue_message.add_reaction("🗑")
                     except Exception as e:
                         print("[{}] Cannot add reaction.".format(self.get_time_string()))
+        else:
+            await ctx.send("You need to be in a voice channel!", delete_after=10.0)
 
     def link_to_songrequest(self, title, user):
         #Searches youtube for the video title and returns the first results video link
@@ -312,7 +325,7 @@ class music(commands.Cog):
             #await self.delete_last_queue_message()
             await self._now_playing(ctx)
             return
-        if (await self.join(ctx)):
+        if (await self.join(ctx) or not self.playque.empty()):
             if not self.loop_song:
                 #await self.delete_last_queue_message()
                 await self._now_playing(ctx)
@@ -325,6 +338,7 @@ class music(commands.Cog):
         #print (url)       
             #self.voice_channel.stop()
             with youtube_dl.YoutubeDL(self.YDL_OPTIONS) as ydl:
+                self.clear_yt_cache()
                 info = ydl.extract_info(url, download=False)
                 url2 = info['formats'][0]['url']
                 
@@ -336,6 +350,8 @@ class music(commands.Cog):
                 self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
             #self.voice_channel.play(discord.FFmpegPCMAudio(url2), after=lambda e: self.next_song(e))
+        else:
+            await ctx.send("You need to be in a voice channel!", delete_after=10.0)
 
 
     def seconds_to_duration(self,seconds):
@@ -385,7 +401,7 @@ class music(commands.Cog):
         elif reaction.emoji == "🗑" and self.last_queue_message==reaction.message:
             await self._remove(reaction.message.channel,len(self.playque)-1,username=user.name)
             #await self.update_embed()
-            await self.delete_last_queue_message()
+            #await self.delete_last_queue_message()
 
     @commands.Cog.listener()
     async def on_reaction_remove(self, reaction, user):
