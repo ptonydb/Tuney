@@ -333,11 +333,11 @@ class music(commands.Cog):
                 for video in playlist.videos:
                     self.playque.add(self.Video_to_SongRequest(video,requester))
 
-            print("[{}] {} added {} songs from the playlist: {}".format(self.get_time_string(),requester,count,playlist.info['info']['title']))    
+            print("[{}] {} added {} songs from the playlist: [{}] {}".format(self.get_time_string(),requester,count,playlist.info['info']['title'],playlist.info['info']['link']))    
             if quiet is False:
                     await self.delete_last_queue_message()
                 #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                    self.last_queue_message = await ctx.send("{} added {} songs from the playlist:```{}```".format(requester,count,playlist.info['info']['title']),delete_after=config.DELETE_AFTER_LO)
+                    self.last_queue_message = await ctx.send("{} added {} songs from the playlist:```[{}] {}```".format(requester,count,playlist.info['info']['title'],playlist.info['info']['link']),delete_after=config.DELETE_AFTER_LO)
                 
             if not self.user_verbose:
                 try:
