@@ -1,0 +1,13 @@
+token = ""
+bot_prefix = "!"
+MAX_FOOTER_CHAR = 2048
+np_icon = "https://c.tenor.com/GcCv_0rvJlYAAAAC/taiga-circle.gif"
+np_stopped_icon = "https://c.tenor.com/brz3_pBWenIAAAAC/logo-circle.gif"
+PLAYER_VERBOSITY = False
+NO_RESULTS_QUOTE = "```No results, try another keyword/link!```"
+DELETE_AFTER_LO = 10
+DELETE_AFTER_MED = 30
+DELETE_AFTER_HI = 60
+
+FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
+YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}

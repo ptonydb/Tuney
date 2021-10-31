@@ -330,7 +330,7 @@ class music(commands.Cog):
             while playlist.hasMoreVideos:
                 playlist.getNextVideos()
                 count += len(playlist.videos)
-                for video in playlist.videos():
+                for video in playlist.videos:
                     self.playque.add(self.Video_to_SongRequest(video,requester))
 
             print("[{}] {} added {} songs from the playlist: {}".format(self.get_time_string(),requester,count,playlist.info['info']['title']))    
@@ -452,6 +452,8 @@ class music(commands.Cog):
                 #self.que_author = deque()
             if not self.playque.empty():
                 next_song = self.playque[0].url
+            else:
+                print("[{}] End of play list...".format(self.get_time_string()))
                 #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
     
         coro = self.play_link(ctx,next_song)
