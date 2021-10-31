@@ -276,7 +276,7 @@ class music(commands.Cog):
         #print(results[0])
         if len(results) > 0:
             return SongRequest(title=results[0]['title'],
-                                url="https://www.youtube.com/watch?v=" + results[0]['url_suffix'],
+                                url="https://www.youtube.com" + results[0]['url_suffix'],
                                 thumbnail=results[0]['thumbnails'][0], 
                                 requester=user,
                                 duration=results[0]['duration'],
