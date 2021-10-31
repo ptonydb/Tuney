@@ -282,7 +282,7 @@ class music(commands.Cog):
         if len(results) > 0:
             return SongRequest(title=results[0]['title'],
                                 url="https://www.youtube.com/watch?v=" + results[0]['id'],
-                                thumbnail=results[0]['thumbnails'][0]['url'], 
+                                thumbnail=results[0]['thumbnails'][-1]['url'], 
                                 requester=user,
                                 duration=results[0]['duration'])
     
@@ -362,7 +362,7 @@ class music(commands.Cog):
     def Video_to_SongRequest(self,video,requester) -> SongRequest:
         return SongRequest(title=video['title'],
                             url="https://www.youtube.com/watch?v=" + video['id'],
-                            thumbnail=video['thumbnails'][1]['url'], 
+                            thumbnail=video['thumbnails'][-1]['url'], 
                             requester=requester,
                             duration=video['duration'])
     """
