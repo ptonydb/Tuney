@@ -346,7 +346,7 @@ class music(commands.Cog):
                     print("[{}] No '!playlist' messages to remove.".format(self.get_time_string()))
 
             if len(self.playque) - count == 0:
-                    await self.play_link(ctx,self.playque[0].url)
+                await self.play_link(ctx,self.playque[0].url)
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
             else:
                 await self.update_embed()
