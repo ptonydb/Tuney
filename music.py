@@ -241,12 +241,6 @@ class music(commands.Cog):
                 self.playque.add(request)
                 print("[{}] {} added '{}'...".format(self.get_time_string(),ctx.author.name,request.title))
                 
-                if not self.user_verbose:
-                    try:
-                        await ctx.message.delete()
-                    except Exception as e:
-                        print("[{}] No '!play' messages to remove.".format(self.get_time_string()))
-                
                 if len(self.playque) == 1:
                     await self.play_link(ctx,request.url)
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
@@ -265,7 +259,11 @@ class music(commands.Cog):
                 #if not ("watch?v=" in track):
                 #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
                 #else:
-                    
+            if not self.user_verbose:
+                try:
+                    await ctx.message.delete()
+                except Exception as e:
+                    print("[{}] No '!play' messages to remove.".format(self.get_time_string()))
 
         else:
             await ctx.send("You need to be in a voice channel!", delete_after=config.DELETE_AFTER_MED)
@@ -308,12 +306,18 @@ class music(commands.Cog):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
             if "playlist?list=" not in pl_query:
-                pl_query = YTPL_Search(pl_query,limit=1).result()['result']
-                if len(pl_query) < 1:
+
+                playlists_results = self.search_yt_playlist(pl_query)
+                pl_query = await self.select_pl_from_list(ctx,playlists_results,pl_query)
+                if pl_query is None:
                     await ctx.send(config.NO_RESULTS_QUOTE,delete_after=config.DELETE_AFTER_MED)
                     return None
-                else:
-                    pl_query = pl_query[0]['link']
+                #pl_query = YTPL_Search(pl_query,limit=1).result()['result']
+                #if len(pl_query) < 1:
+                #    await ctx.send(config.NO_RESULTS_QUOTE,delete_after=config.DELETE_AFTER_MED)
+                #    return None
+                #else:
+                #    pl_query = pl_query[0]['link']
             try:
                 playlist = YTPL(pl_query)
             except Exception as e:
@@ -333,12 +337,6 @@ class music(commands.Cog):
                 for video in playlist.videos:
                     self.playque.add(self.Video_to_SongRequest(video,requester))
 
-            print("[{}] {} added {} songs from the playlist: [{}] {}".format(self.get_time_string(),requester,count,playlist.info['info']['title'],playlist.info['info']['link']))    
-            if quiet is False:
-                    await self.delete_last_queue_message()
-                #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                    self.last_queue_message = await ctx.send("{} added {} songs from the playlist:```[{}] {}```".format(requester,count,playlist.info['info']['title'],playlist.info['info']['link']),delete_after=config.DELETE_AFTER_LO)
-                
             if not self.user_verbose:
                 try:
                     await ctx.message.delete()
@@ -350,6 +348,13 @@ class music(commands.Cog):
                     #print("[{}] Playing song: '{}'...".format(self.get_time_string(),self.playque[0].title))
             else:
                 await self.update_embed()
+            
+            print("[{}] {} added {} songs from the playlist: [{}] {}".format(self.get_time_string(),requester,count,playlist.info['info']['title'],playlist.info['info']['link']))    
+            if quiet is False:
+                    await self.delete_last_queue_message()
+                #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
+                    self.last_queue_message = await ctx.send("{} added {} songs from the playlist:```[{}] {}```".format(requester,count,playlist.info['info']['title'],playlist.info['info']['link']),delete_after=config.DELETE_AFTER_LO)
+                
 
             #try:
             #    await self.last_queue_message.add_reaction("🗑")
@@ -358,6 +363,59 @@ class music(commands.Cog):
 
         else:
             await ctx.send("You need to be in a voice channel!", delete_after=config.DELETE_AFTER_MED)
+
+    def search_yt_playlist (self, query, result_limit = 5) -> list:
+        return YTPL_Search(query,min(result_limit,config.SEARCH_LIMIT)).result()['result']
+         
+    async def select_pl_from_list (self, ctx, list_of_pl, search_query) -> str:
+        self.embed_results=discord.Embed()
+        #search_results = ""
+        for i in range(len(list_of_pl)):
+            title = list_of_pl[i]['title']
+            videoCount = list_of_pl[i]['videoCount']
+            link = list_of_pl[i]['link']
+            self.embed_results.add_field(name='{}. {} `{}`'.format(i+1,list_of_pl[i]['title'],list_of_pl[i]['link']),
+                            value= '[{}]({})'.format(title,link),
+                            inline=False)
+        self.embed_results.set_author(name="Playlists search results for '{}':".format(search_query), icon_url=config.SEARCH_ICON)
+        sent_embed = await ctx.send(embed=self.embed_results)
+        reaction_select = {}
+        for i in range(len(list_of_pl)):
+            if i == 9:
+                try:
+                    await sent_embed.add_reaction("🔟")
+                    reaction_select["🔟"] = 9
+                except Exception as e:
+                    print("[{}] Cannot add search reaction.".format(self.get_time_string()))
+            else:
+                try:
+                    await sent_embed.add_reaction("{}\u20e3".format(i+1))
+                    reaction_select["{}\u20e3".format(i+1)] = i
+                except Exception as e:
+                    print("[{}] Cannot add search reaction.".format(self.get_time_string()))
+        try:
+            await sent_embed.add_reaction("❌")
+            reaction_select["❌"] = -1
+        except Exception as e:
+            print("[{}] Cannot add search reaction.".format(self.get_time_string()))
+
+        def check(reaction, user):
+            return user == ctx.author and str(
+                reaction.emoji) in reaction_select and reaction.message == sent_embed
+
+        while True:
+            try:
+                reaction,user = await self.client.wait_for("reaction_add", timeout=config.DELETE_AFTER_MED, check=check)
+                await sent_embed.delete()
+                if reaction.emoji == "❌":
+                    return None
+                else:
+                    return list_of_pl[reaction_select[str(reaction.emoji)]]['link']
+            except Exception as e:
+                print("[{}] No playlist search result selected.".format(self.get_time_string()))
+                await sent_embed.delete()
+                return None
+
 
     def Video_to_SongRequest(self,video,requester) -> SongRequest:
         return SongRequest(title=video['title'],
