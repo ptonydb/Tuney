@@ -349,9 +349,12 @@ class music(commands.Cog):
             
             title = list_of_pl[i]['title']
             link = list_of_pl[i]['link']
+        
             pl = YTPL(link)
             videos_in_pl = Playlist()
             self.ytplaylist_to_dest(pl,videos_in_pl,limit = video_display_limit)
+            
+            #videos = YTPL.getVideos(link)['videos']
             video_str = ""
             for video in videos_in_pl:
                 video_str += "\n• {}".format(video.title)
