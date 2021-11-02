@@ -9,9 +9,10 @@
 ✓ Display queued playlist
 ✓ Remove song by queue slot number
 ✓ Retrieve YouTube data via youtube-dl instead of selenium
+✓ YouTube Playlist(?) - queue all songs in list
 Add manual search, present x query results & let users pick
-Forcibly play a song regardless of queue position
-YouTube Playlist(?) - queue all songs in list
+Play-next
+Skip-to: Forcibly play a song regardless of queue position
 Soundcloud support
 Remove specific song from queue by keyword
 Age restriction - some videos are age restricted by YouTube

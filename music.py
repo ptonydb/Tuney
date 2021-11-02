@@ -167,6 +167,11 @@ class music(commands.Cog):
             print("[{}] {} looped current song...".format(self.get_time_string(),username))
         else:
             print("[{}] {} unlooped current song...".format(self.get_time_string(),username))
+
+    async def shuffle(self,username):
+        self.playque.shuffle()
+        print("[{}] {} shuffled the playlist...".format(self.get_time_string(),username))
+        await self.update_embed()
         
     @commands.command(name='pause')
     async def _pause(self,ctx,username=None):
@@ -293,7 +298,7 @@ class music(commands.Cog):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
             await self.handle_user_message(ctx)
-            if "playlist?list=" not in pl_query:
+            if "playlist?list=" not in pl_query and "youtube.com" not in pl_query:
                 playlists_results = self.search_yt_playlist(pl_query)
                 pl_query = await self.select_pl_from_list(ctx,playlists_results,pl_query)
                 if pl_query is None:
@@ -306,14 +311,8 @@ class music(commands.Cog):
                     return None
 
                 requester = ctx.author.name
-                count = len(playlist.videos)
-                for video in playlist.videos:
-                    self.playque.add(self.Video_to_SongRequest(video,requester))
-                while playlist.hasMoreVideos:
-                    playlist.getNextVideos()
-                    count += len(playlist.videos)
-                    for video in playlist.videos:
-                        self.playque.add(self.Video_to_SongRequest(video,requester))
+                
+                count = self.ytplaylist_to_dest(playlist,self.playque,requester)
 
                 if len(self.playque) - count == 0:
                     await self.play_link(ctx,self.playque[0].url)
@@ -330,18 +329,14 @@ class music(commands.Cog):
 
     def ytplaylist_to_dest(self, playlist, destination, user = None, limit = float('inf')) -> int:
         videosAdded = 0
+        while playlist.hasMoreVideos and len(playlist.videos) < limit:
+            playlist.getNextVideos()
+
         for video in playlist.videos:
             if videosAdded == limit:
                 return videosAdded
             destination.add(self.Video_to_SongRequest(video,user))
             videosAdded += 1
-        while playlist.hasMoreVideos:
-            playlist.getNextVideos()
-            for video in playlist.videos:
-                if videosAdded == limit:
-                    return videosAdded
-                destination.add(self.Video_to_SongRequest(video,user))
-                videosAdded += 1
         return videosAdded
 
     async def select_pl_from_list (self, ctx, list_of_pl, search_query) -> str:
@@ -351,33 +346,30 @@ class music(commands.Cog):
         self.embed_results=discord.Embed(color=0xDCDCDC)
         for i in range(len(list_of_pl)):
             video_display_limit = 3
-            pl = YTPL(list_of_pl[i]['link'])
+            
+            title = list_of_pl[i]['title']
+            link = list_of_pl[i]['link']
+            pl = YTPL(link)
             videos_in_pl = Playlist()
             self.ytplaylist_to_dest(pl,videos_in_pl,limit = video_display_limit)
             video_str = ""
             for video in videos_in_pl:
                 video_str += "\n• {}".format(video.title)
-
-            title = list_of_pl[i]['title']
-            videoCount = int(list_of_pl[i]['videoCount'])
-            link = list_of_pl[i]['link']
-            #str = '`{} song{}.`'.format(str(videoCount), 's' if videoCount > 1 else '')
+            
+            videoCount = list_of_pl[i]['videoCount']
             """
-            self.embed_results.add_field(name='',
-                            value= '*[{} song{} in the playlist.]({})*```{}{}```'.format(str(videoCount), 
-                                                            's' if videoCount > 1 else '',
-                                                            link,video_str,
-                                                            '\n  ...' if videoCount > len(videos_in_pl) else ''),
-                                                            #value= '[{}]({})'.format(title,link),
-                                                            inline=False)
+            videoCount = len(pl.videos)
+            while pl.hasMoreVideos:
+                pl.getNextVideos()
+                videoCount += len(pl.videos)
             """
             self.embed_results.add_field(name='\u200b',
-                            value= "{}\u20e3 **[{}]({})** ```{}{}{} song{} in the playlist.```".format(i+1,list_of_pl[i]['title'],
-                                                            link,
+                            value= "{}\u20e3 **[{}]({})** ```{}{}{} song{} in the playlist.```".format(i+1,
+                                                            title, link,
                                                             video_str,
-                                                            '\n  ...' if videoCount > len(videos_in_pl) else '',                                                              
-                                                            str(videoCount), 
-                                                            's' if videoCount > 1 else '',),inline=False)
+                                                            '\n  ...' if int(videoCount) > len(videos_in_pl) else '',                                                              
+                                                            videoCount, 
+                                                            's' if int(videoCount) > 1 else '',),inline=False)
 
         self.embed_results.set_author(name="Playlists search results for '{}':".format(search_query), icon_url=config.SEARCH_ICON)
         sent_embed = await ctx.send(embed=self.embed_results)
@@ -478,7 +470,7 @@ class music(commands.Cog):
             print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
 
             with yt_dlp.YoutubeDL(self.YDL_OPTIONS) as ydl:
-                self.clear_yt_cache()
+                #self.clear_yt_cache()
                 info = ydl.extract_info(url, download=False)
                 url2 = info['formats'][0]['url']
                 source = await discord.FFmpegOpusAudio.from_probe(url2, **self.FFMPEG_OPTIONS)
@@ -517,6 +509,9 @@ class music(commands.Cog):
         elif reaction.emoji == "⏭️" and self.last_now_playing==reaction.message:
             await self._skip(reaction.message.channel,username=user.name)
 
+        elif reaction.emoji == "🔀" and self.last_now_playing==reaction.message:
+            await self.shuffle(user.name)
+
         elif reaction.emoji == "🛑" and self.last_now_playing==reaction.message:
             await self._stop(reaction.message.channel,username=user.name)
 
@@ -536,6 +531,8 @@ class music(commands.Cog):
             self.toggle_loop(user.name)
         elif reaction.emoji == "⏯" and self.last_now_playing==reaction.message:
             await self._resume(reaction.message.channel,username=user.name)
+        elif reaction.emoji == "🔀" and self.last_now_playing==reaction.message:
+            await self.shuffle(user.name)
 
     def create_np_embed(self) -> discord.Embed:
         embed=discord.Embed(title="{}".format(self.playque[0].title),
@@ -572,7 +569,7 @@ class music(commands.Cog):
             embed = self.create_np_embed()
             await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
-            reaction_controls = ["🔂","⏯","⏭️","🛑"]
+            reaction_controls = ["🔂","⏯","⏭️","🔀","🛑"]
             for reaction in reaction_controls:
                 try:
                     await self.last_now_playing.add_reaction(reaction)

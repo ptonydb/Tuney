@@ -1,5 +1,6 @@
 from collections import deque
 import discord
+import random
 
 class Playlist:
     """Stores the youtube links of songs to be played and already played and offers basic operation on the queues"""
@@ -16,6 +17,9 @@ class Playlist:
 
     def add(self, songrequest):
         self.playque.append(songrequest)
+
+    def appendleft(self, songrequest):
+        self.playque.appendleft(songrequest)
 
     def clear(self):
         self.playque.clear()
@@ -56,6 +60,19 @@ class Playlist:
             return self.playque[1]
         else:
             return None
+
+    def insert(self, index, songrequest):
+        self.playque.insert(index,songrequest)
+
+    def shuffle(self):
+        if not self.empty():
+            current = self.popleft()
+            self.playque = deque(random.sample(self.playque,len(self)))
+            #self.insert(0,current)
+            self.appendleft(current)
+
+        
+
     #def remove(self,title:str):
     #    for i in range(len(self.playque)):
     #        if self.playque[i].title == title:
