@@ -1,6 +1,5 @@
-import discord
 from discord.ext import commands
-import youtube_dl
+import discord
 #from collections import deque
 
 #from string import printable
@@ -18,8 +17,11 @@ from utils.customhelp import CustomHelp
 
 from datetime import datetime
 
+import youtube_dl
+
 from youtubesearchpython import Playlist as YTPL
 from youtubesearchpython import PlaylistsSearch as YTPL_Search
+from youtubesearchpython import Video
 from youtubesearchpython import VideosSearch
 
 from config import config
@@ -85,13 +87,13 @@ class music(commands.Cog):
     async def ui(self,ctx,*,icon_url):
         self.np_icon=icon_url
         await ctx.message.delete()
-        await self._now_playing(ctx)
+        await self.update_embed()
 
     @commands.command()
     async def uis(self,ctx,*,icon_url):
         self.np_stopped_icon=icon_url
         await ctx.message.delete()
-        await self._now_playing(ctx)
+        await self.update_embed()
     #test function
     @commands.command()
     async def test(self,ctx):
@@ -113,7 +115,7 @@ class music(commands.Cog):
 
     #Joins the author's channel.
     @commands.command()
-    async def join(self,ctx,quiet=False,move_between_channel=False):
+    async def join(self,ctx,quiet=False,move_between_channel=False) -> bool:
         author_voice = ctx.author.voice
         if author_voice is None or author_voice.channel is None:
             if not quiet:
@@ -211,27 +213,24 @@ class music(commands.Cog):
             ###Removed using !remove command NOT emoji
             if username is None:
                 username = ctx.author.name
-                await ctx.send("Removed from slot {} [{}]```{}```".format(index,username,removed.title),delete_after=config.DELETE_AFTER_LO)
+                await ctx.send("Removed from slot {} by **{}**```{}```".format(index,username,removed.title),delete_after=config.DELETE_AFTER_LO)
                 if not self.user_verbose:
                     await ctx.message.delete()
             print("[{}] {} removed '{}'...".format(self.get_time_string(),username,removed.title))
 
-            
-            #await ctx.send("Removed from slot {} [{}]```{}```".format(index,username,removed.title),delete_after=10.0)
-            #except Exception as e:
-            #    print("[{}] Used trashcan emoji to remove.".format(self.get_time_string()))
             del removed
             await self.update_embed()
 
     #@commands.command()
     #async def list(self,ctx):
     #    await self.playque.embedlist(ctx)
+
     async def handle_user_message(self,ctx):
         if not self.user_verbose:
             try:
                 await ctx.message.delete()
             except Exception as e:
-                print("[{}] No '!play' messages to remove.".format(self.get_time_string()))
+                print("[{}] No user messages to remove.".format(self.get_time_string()))
             
     @commands.command(name = 'play')
     async def _add_youtube(self,ctx,*,track,quiet=False):
@@ -256,19 +255,14 @@ class music(commands.Cog):
                     if quiet is False:
                         await self.delete_last_queue_message()
                     #self.last_queue_message = await ctx.send("Queued at slot {}: ```{}```".format(len(self.playque)-1,request.title))
-                        self.last_queue_message = await ctx.send("Queued at slot {} [{}]```{}```".format(len(self.playque)-1,request.requester,request.title),delete_after=config.DELETE_AFTER_LO)
+                        self.last_queue_message = await ctx.send("Queued at slot {} by **{}**```{}```".format(len(self.playque)-1,request.requester,request.title),delete_after=config.DELETE_AFTER_LO)
                         try:
                             await self.last_queue_message.add_reaction("🗑")
                         except Exception as e:
                             print("[{}] Cannot add reaction.".format(self.get_time_string()))
                     await self.update_embed()
-                    #print("[{}] {} added '{}' to the playlist...".format(self.get_time_string(),ctx.author.name,request.title))
-            
-                #if not ("watch?v=" in track):
-                #    self.last_queue_message = await ctx.send("Queued at slot {}: {}".format(len(self.playque),request.url))
-                #else:
 
-    def query_to_SongRequest(self, query, user):
+    def query_to_SongRequest(self, query, user=None) -> SongRequest:
         #Searches youtube for the video title and returns the first results video link
         #filter(lambda x: x in set(printable), title)
         # Parse the search result page for the first results link
@@ -286,20 +280,13 @@ class music(commands.Cog):
     
         return None
 
-    def link_to_SongRequest(self, link, user):
-        #Searches youtube for the video title and returns the first results video link
-        #filter(lambda x: x in set(printable), title)
-        # Parse the search result page for the first results link
-        #query = urllib.parse.quote_plus(title)
-        pass
-        """     
-        return SongRequest(title=results[0]['title'],
-                            url='https://www.youtube.com' + results[0]['url_suffix'],
-                            thumbnail=results[0]['thumbnails'][0], 
-                            requester=user,
-                            duration=results[0]['duration'],
-                            views=results[0]['views'])
-        """
+    def link_to_SongRequest(self, link, user=None) -> SongRequest:
+        video = Video.getInfo(link)
+        return SongRequest(title=video['title'],
+                                url="https://www.youtube.com/watch?v=" + video['id'],
+                                thumbnail=video['thumbnails'][-1]['url'], 
+                                requester=user,
+                                duration=video['duration'])
 
     @commands.command(name = 'playlist')
     async def _add_yt_playlist(self,ctx,*,pl_query,quiet=False):
@@ -318,8 +305,8 @@ class music(commands.Cog):
                     await ctx.send("Invalid link, please make sure it follows this format: ```https://www.youtube.com/playlist?list=***```",delete_after=config.DELETE_AFTER_MED)
                     return None
 
-                count = len(playlist.videos)
                 requester = ctx.author.name
+                count = len(playlist.videos)
                 for video in playlist.videos:
                     self.playque.add(self.Video_to_SongRequest(video,requester))
                 while playlist.hasMoreVideos:
@@ -336,27 +323,65 @@ class music(commands.Cog):
                 print("[{}] {} added {} songs from the playlist: [{}] {}".format(self.get_time_string(),requester,count,playlist.info['info']['title'],playlist.info['info']['link']))    
                 if quiet is False:
                         await self.delete_last_queue_message()
-                        self.last_queue_message = await ctx.send("{} added {} songs from the playlist:```[{}] {}```".format(requester,count,playlist.info['info']['title'],playlist.info['info']['link']),delete_after=config.DELETE_AFTER_LO)
+                        self.last_queue_message = await ctx.send("**{}** added {} songs from the playlist:```[{}] {}```".format(requester,count,playlist.info['info']['title'],playlist.info['info']['link']),delete_after=config.DELETE_AFTER_LO)
             
     def search_yt_playlist (self, query, result_limit = 5) -> list:
-        return YTPL_Search(query,min(result_limit,config.SEARCH_LIMIT)).result()['result']
-         
+        return YTPL_Search(query,limit = min(result_limit,config.SEARCH_LIMIT)).result()['result']
+
+    def ytplaylist_to_dest(self, playlist, destination, user = None, limit = float('inf')) -> int:
+        videosAdded = 0
+        for video in playlist.videos:
+            if videosAdded == limit:
+                return videosAdded
+            destination.add(self.Video_to_SongRequest(video,user))
+            videosAdded += 1
+        while playlist.hasMoreVideos:
+            playlist.getNextVideos()
+            for video in playlist.videos:
+                if videosAdded == limit:
+                    return videosAdded
+                destination.add(self.Video_to_SongRequest(video,user))
+                videosAdded += 1
+        return videosAdded
+
     async def select_pl_from_list (self, ctx, list_of_pl, search_query) -> str:
         if len(list_of_pl) == 0:
             return None
-        self.embed_results=discord.Embed()
-        #search_results = ""
+
+        self.embed_results=discord.Embed(color=0xDCDCDC)
         for i in range(len(list_of_pl)):
+            video_display_limit = 3
+            pl = YTPL(list_of_pl[i]['link'])
+            videos_in_pl = Playlist()
+            self.ytplaylist_to_dest(pl,videos_in_pl,limit = video_display_limit)
+            video_str = ""
+            for video in videos_in_pl:
+                video_str += "\n• {}".format(video.title)
+
             title = list_of_pl[i]['title']
-            videoCount = list_of_pl[i]['videoCount']
+            videoCount = int(list_of_pl[i]['videoCount'])
             link = list_of_pl[i]['link']
-            str = '`{} song{}.`'.format(videoCount, 's' if int(videoCount) > 1 else '')
-            self.embed_results.add_field(name='{}. {}'.format(i+1,list_of_pl[i]['title']),
-                            value= '• *[{} song{} in the playlist.]({})*'.format(videoCount, 's' if int(videoCount) > 1 else '',link),
-                            #value= '[{}]({})'.format(title,link),
-                            inline=False)
+            #str = '`{} song{}.`'.format(str(videoCount), 's' if videoCount > 1 else '')
+            """
+            self.embed_results.add_field(name='',
+                            value= '*[{} song{} in the playlist.]({})*```{}{}```'.format(str(videoCount), 
+                                                            's' if videoCount > 1 else '',
+                                                            link,video_str,
+                                                            '\n  ...' if videoCount > len(videos_in_pl) else ''),
+                                                            #value= '[{}]({})'.format(title,link),
+                                                            inline=False)
+            """
+            self.embed_results.add_field(name='\u200b',
+                            value= "{}\u20e3 **[{}]({})** ```{}{}{} song{} in the playlist.```".format(i+1,list_of_pl[i]['title'],
+                                                            link,
+                                                            video_str,
+                                                            '\n  ...' if videoCount > len(videos_in_pl) else '',                                                              
+                                                            str(videoCount), 
+                                                            's' if videoCount > 1 else '',),inline=False)
+
         self.embed_results.set_author(name="Playlists search results for '{}':".format(search_query), icon_url=config.SEARCH_ICON)
         sent_embed = await ctx.send(embed=self.embed_results)
+        
         reaction_select = {}
         for i in range(len(list_of_pl)):
             if i == 9:
@@ -383,7 +408,7 @@ class music(commands.Cog):
 
         while True:
             try:
-                reaction,user = await self.client.wait_for("reaction_add", timeout=config.DELETE_AFTER_MED, check=check)
+                reaction,user = await self.client.wait_for("reaction_add", timeout=config.DELETE_AFTER_EXTLONG, check=check)
                 await sent_embed.delete()
                 if reaction.emoji == "❌":
                     return -1
@@ -394,8 +419,7 @@ class music(commands.Cog):
                 await sent_embed.delete()
                 return -1
 
-
-    def Video_to_SongRequest(self,video,requester) -> SongRequest:
+    def Video_to_SongRequest(self,video,requester=None) -> SongRequest:
         return SongRequest(title=video['title'],
                             url="https://www.youtube.com/watch?v=" + video['id'],
                             thumbnail=video['thumbnails'][-1]['url'], 
@@ -447,19 +471,19 @@ class music(commands.Cog):
         if url is None:
             await self._now_playing(ctx)
             return
-        #if (await self.join(ctx,quiet=True) or not self.playque.empty()):
-        if not self.loop_song:
-            await self._now_playing(ctx)
+        if (await self.join(ctx,quiet=True) or not self.playque.empty()):
+            if not self.loop_song:
+                await self._now_playing(ctx)
 
-        print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
+            print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
 
-        with youtube_dl.YoutubeDL(self.YDL_OPTIONS) as ydl:
-            self.clear_yt_cache()
-            info = ydl.extract_info(url, download=False)
-            url2 = info['formats'][0]['url']
-            source = await discord.FFmpegOpusAudio.from_probe(url2, **self.FFMPEG_OPTIONS)
-            #source = discord.FFmpegPCMAudio(url2, **FFMPEG_OPTIONS)
-            self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
+            with youtube_dl.YoutubeDL(self.YDL_OPTIONS) as ydl:
+                self.clear_yt_cache()
+                info = ydl.extract_info(url, download=False)
+                url2 = info['formats'][0]['url']
+                source = await discord.FFmpegOpusAudio.from_probe(url2, **self.FFMPEG_OPTIONS)
+                #source = discord.FFmpegPCMAudio(url2, **FFMPEG_OPTIONS)
+                self.voice_client.play(source, after=lambda e: self.next_song(ctx,e))
 
     def next_song(self,ctx,error):
         """Invoked after a song is finished. Plays the next song if there is one, resets the nickname otherwise"""
@@ -548,13 +572,12 @@ class music(commands.Cog):
             embed = self.create_np_embed()
             await self.delete_last_now_playing()
             self.last_now_playing = await ctx.send(embed=embed)
-            try:
-                await self.last_now_playing.add_reaction("🔂")
-                await self.last_now_playing.add_reaction("⏯")
-                await self.last_now_playing.add_reaction("⏭️")
-                await self.last_now_playing.add_reaction("🛑")
-            except Exception as e:
-                print("[{}] Cannot add reaction.".format(self.get_time_string()))
+            reaction_controls = ["🔂","⏯","⏭️","🛑"]
+            for reaction in reaction_controls:
+                try:
+                    await self.last_now_playing.add_reaction(reaction)
+                except Exception as e:
+                    print("[{}] Cannot add reaction control.".format(self.get_time_string()))
 
         else:
             embed=discord.Embed(title="Nothing is currently playing.", color=0xDCDCDC)
@@ -565,7 +588,7 @@ class music(commands.Cog):
             try:
                 await self.last_now_playing.add_reaction("❌")
             except Exception as e:
-                print("[{}] Cannot add reaction.".format(self.get_time_string()))
+                print("[{}] Cannot add reaction control.".format(self.get_time_string()))
         # Add author, thumbnail, fields, and footer to the embed
         #embed.set_thumbnail(url=self.que_thumbnail[0])
         #embed.add_field(name="Up next:", value="Index 0 of title que", inline=False) 
@@ -577,7 +600,7 @@ class music(commands.Cog):
         ## User's avatar URL
         #ctx.author.avatar_url
 
-    async def update_embed(self,ctx = None):
+    async def update_embed(self):
         #### Create the initial embed object ####
         #curr_char_count = 0
         if not self.playque.empty():
