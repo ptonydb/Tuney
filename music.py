@@ -17,7 +17,7 @@ from utils.customhelp import CustomHelp
 
 from datetime import datetime
 
-import yt_dlp
+import youtube_dl
 
 from youtubesearchpython import Playlist as YTPL
 from youtubesearchpython import PlaylistsSearch as YTPL_Search
@@ -465,7 +465,7 @@ class music(commands.Cog):
     """
 
     def clear_yt_cache(self):
-        yt_dlp.YoutubeDL().cache.remove()
+        youtube_dl.YoutubeDL().cache.remove()
 
     async def play_link(self,ctx,url:str):
         if url is None:
@@ -477,7 +477,7 @@ class music(commands.Cog):
 
             print("[{}] Playing: {}".format(self.get_time_string(),self.playque[0].title))
 
-            with yt_dlp.YoutubeDL(self.YDL_OPTIONS) as ydl:
+            with youtube_dl.YoutubeDL(self.YDL_OPTIONS) as ydl:
                 self.clear_yt_cache()
                 info = ydl.extract_info(url, download=False)
                 url2 = info['formats'][0]['url']
