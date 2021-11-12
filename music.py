@@ -549,7 +549,7 @@ class music(commands.Cog):
             for i in range(1,len(self.playque)):
                 song_str = "\n{}. {}".format(i,self.playque[i].title)
                 curr_char_count += len(song_str)
-                if curr_char_count < config.MAX_FOOTER_CHAR - len("\n\n[ {} more songs... ]".format(len(self.playque)-i)):
+                if curr_char_count < config.MAX_FOOTER_CHAR - len("\n\n[ {} more songs... ]".format(len(self.playque)-i)) and i <= config.MAX_QUEUE_DISPLAY:
                     upnext += song_str
                 #print("Up next size:" + str(len(upnext)))
                 else:
