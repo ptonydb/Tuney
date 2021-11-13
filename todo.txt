@@ -10,6 +10,7 @@
 ✓ Remove song by queue slot number
 ✓ Retrieve YouTube data via youtube-dl instead of selenium
 ✓ YouTube Playlist(?) - queue all songs in list
+Error class to correctly handle the exceptions thrown
 Add manual search, present x query results & let users pick
 Play-next
 Skip-to: Forcibly play a song regardless of queue position
