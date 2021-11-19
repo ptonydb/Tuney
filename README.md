@@ -15,4 +15,4 @@ The most important piece here is the discord's bot token. Since I will not be pr
 ## Commands
 ```!help``` will show the following available commands.
 
-![](https://i.imgur.com/8cWRQjd.png)
+![](https://i.imgur.com/qLhnAzF.png)
