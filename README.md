@@ -6,7 +6,7 @@ To begin, you will be needing Python 3.5+ installed on the machine.
 
 Additionally, you will also be required to have to newest versions of youtube-dl, youtube_search, PyNaCl, and discord.py.
 
-```pip install -U youtube-dl youtube_search discord pynacl```
+```pip install -U  yt-dlp youtube-search-python discord pynacl```
  
 ## Configuration
 
