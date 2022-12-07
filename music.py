@@ -239,8 +239,11 @@ class music(commands.Cog):
             
     @commands.command(name = 'play')
     async def _add_youtube(self,ctx,*,track,quiet=False):
-        """Adds the track to the playlist instance and plays it, if it is the first song"""
-        if (await self.join(ctx)):
+        if "youtube.com" in track and "list=" in track:
+            print("[{}] Deferring to playlist command from play command.".format(self.get_time_string()))
+            await self._add_yt_playlist(ctx,pl_query=track)
+        # Adds the track to the playlist instance and plays it, if it is the first song
+        elif (await self.join(ctx)):
         # If the track is a video title, get the corresponding video link first
             #request = self.convert_to_songrequest(track,ctx.author.name)
             #request = self.track_to_link(track)
@@ -298,11 +301,15 @@ class music(commands.Cog):
         """Adds the track to the playlist instance and plays it, if it is the first song"""
         if (await self.join(ctx)):
             await self.handle_user_message(ctx)
+            
+            if "playlist?" not in pl_query and "list=" in pl_query:
+                pl_query = "https://www.youtube.com/playlist?list=" + (pl_query.split("list=")[-1]).split("&")[0]
             if "playlist?list=" not in pl_query and "youtube.com" not in pl_query:
                 playlists_results = self.search_yt_playlist(pl_query)
                 pl_query = await self.select_pl_from_list(ctx,playlists_results,pl_query)
                 if pl_query is None:
                     await ctx.send(config.NO_RESULTS_QUOTE,delete_after=config.DELETE_AFTER_MED)
+
             if pl_query is not None and pl_query != -1:
                 try:
                     playlist = YTPL(pl_query)
