@@ -53,7 +53,7 @@ class music(commands.Cog):
         #self.last_user = None
 
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 4294', 'options': '-vn'}
-        self.YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch'}
+        self.YDL_OPTIONS = {'format':"bestaudio",'youtube_include_dash_manifest': False,'quiet': False,'default_search': 'ytsearch',"cookiefile":"youtube.com_cookies.txt"}
             
         self.np_icon = config.np_icon
         #"https://m.media-amazon.com/images/G/01/digital/music/player/web/sixteen_frame_equalizer_accent.gif"
@@ -330,7 +330,12 @@ class music(commands.Cog):
     def ytplaylist_to_dest(self, playlist, destination, user = None, limit = float('inf')) -> int:
         videosAdded = 0
         while playlist.hasMoreVideos and len(playlist.videos) < limit:
-            playlist.getNextVideos()
+            try:
+                playlist.getNextVideos()
+            except TypeError as err:
+                print("[{}] Playlist has invalid trailing pointer, resolving at last found video...error: {}".format(self.get_time_string(),err))
+                #Sometimes YouTube is stupid and refuses to load next 100 videos in the list even if there are more - due to copyright strike or other methods of video removal.
+                break
 
         for video in playlist.videos:
             if videosAdded == limit:

@@ -10,13 +10,13 @@
 ✓ Remove song by queue slot number
 ✓ Retrieve YouTube data via youtube-dl instead of selenium
 ✓ YouTube Playlist(?) - queue all songs in list
+✓ Age restriction - some videos are age restricted by YouTube
 Error class to correctly handle the exceptions thrown
 Add manual search, present x query results & let users pick
 Play-next
 Skip-to: Forcibly play a song regardless of queue position
 Soundcloud support
 Remove specific song from queue by keyword
-Age restriction - some videos are age restricted by YouTube
 Clean up with CONFIGURATION file for max_songs_shown and message logs
 
 
